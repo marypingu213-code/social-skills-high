@@ -39,12 +39,11 @@
             display: flex;
             flex-direction: column;
         }
-        /* 調整版面配置：更緊湊，不用滾動 */
         .content-area {
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: center; /* 內容垂直居中 */
+            justify-content: center;
             align-items: center;
             padding: 1rem 2rem;
             width: 100%;
@@ -71,7 +70,7 @@
             animation: stamp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
         
-        /* 翻牌特效 */
+        /* 翻牌特效 (已修復) */
         .flip-card { perspective: 1000px; }
         .flip-card-inner {
             position: relative;
@@ -81,7 +80,9 @@
             transition: transform 0.8s;
             transform-style: preserve-3d;
         }
-        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        /* 修正點：直接對應 flip-card-inner 的 flipped class */
+        .flip-card-inner.flipped { transform: rotateY(180deg); }
+        
         .flip-card-front, .flip-card-back {
             position: absolute;
             width: 100%;
@@ -667,11 +668,11 @@
                                                             <div className={`text-3xl font-black ${isDone ? 'text-yellow-600' : 'text-pink-600'}`}>{score}/3</div>
                                                         </div>
                                                         
-                                                        {/* 完成度細節燈號 */}
-                                                        <div className="flex gap-2 mb-2">
-                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl border-2 ${student.checks.eyes ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>👀</div>
-                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl border-2 ${student.checks.hand ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>✋</div>
-                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl border-2 ${student.checks.mouth ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>🤐</div>
+                                                        {/* 完成度細節燈號 - 加大加粗 */}
+                                                        <div className="flex gap-3 mb-2 w-full justify-center">
+                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-sm ${student.checks.eyes ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>👀</div>
+                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-sm ${student.checks.hand ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>✋</div>
+                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-sm ${student.checks.mouth ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>🤐</div>
                                                         </div>
 
                                                         <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-200 px-0.5">
