@@ -228,6 +228,7 @@
                 }
             }, []);
 
+            // Auth Logic
             useEffect(() => {
                 if (!db) {
                     setConnectionStatus("disconnected");
@@ -266,6 +267,7 @@
                 return () => unsubscribe();
             }, []);
 
+            // Firestore Data Logic
             useEffect(() => {
                 if (!user || !db) return;
 
@@ -434,7 +436,7 @@
 
                 return (
                     <div className="absolute top-4 right-4 flex items-center gap-2 z-50 bg-white/90 px-3 py-1 rounded-full shadow-md border-2 border-gray-100">
-                        <span className={`text-sm font-bold ${color === 'bg-green-500' ? 'text-green-600' : 'text-red-500'}`}>{text}</span>
+                        <span className={`text-base font-bold ${color === 'bg-green-500' ? 'text-green-600' : 'text-red-500'}`}>{text}</span>
                     </div>
                 );
             };
@@ -442,7 +444,8 @@
             // 繪本閱讀器
             const BookReader = () => {
                 if (!showBook) return null;
-                const imagePath = `/image/room${String(bookPage).padStart(2, '0')}.jpg`;
+                // 使用 room-XX.jpg 格式
+                const imagePath = `./image/room-${String(bookPage).padStart(2, '0')}.jpg`;
 
                 return (
                     <div className="book-reader-overlay">
@@ -497,7 +500,7 @@
                             <ConnectionStatus />
                             {loadingError && <div className="mt-8 text-center bg-red-100 p-2 text-red-600 font-bold rounded-xl border-2 border-red-300">{loadingError}</div>}
                             
-                            <h1 className="text-4xl font-black text-pink-800 text-center mb-6 mt-4">你是誰？</h1>
+                            <h1 className="text-5xl font-black text-pink-800 text-center mb-6 mt-4">我是誰？</h1>
                             
                             <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
                                 {students.map(student => (
@@ -574,7 +577,7 @@
                         <div className="content-area bg-blue-50">
                             <div className="text-8xl animate-bounce-slow mb-4">🦝</div>
                             <h1 className="text-6xl font-black text-blue-800 tracking-wider mb-4">社會技巧課</h1>
-                            <div className="bg-white px-8 py-3 rounded-2xl border-4 border-blue-300 shadow-xl mb-4"><h2 className="text-3xl font-bold text-gray-700">浣熊的房間(說話規則)</h2></div>
+                            <div className="bg-white px-8 py-3 rounded-2xl border-4 border-blue-300 shadow-xl mb-4"><h2 className="text-3xl font-bold text-gray-700">浣熊的房間與說話規則</h2></div>
                             <p className="text-xl text-gray-500 font-bold">準備好你的耳朵和眼睛了嗎？</p>
                         </div>
                     );
@@ -613,8 +616,8 @@
                                     title="點擊閱讀繪本"
                                 >
                                     <div className="relative">
-                                        <img src="./image/room01.jpg" alt="浣熊的房間" className="w-[18rem] h-[24rem] object-cover rounded-2xl mb-2 shadow-inner bg-gray-100" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-                                        <div className="w-[18rem] h-[24rem] bg-gray-200 hidden flex-col items-center justify-center rounded-2xl mb-2 text-gray-400 text-center p-4"><div className="text-center"><div className="text-5xl mb-2">📚</div><div className="text-lg font-bold">圖片讀取失敗<br/>room.png</div></div></div>
+                                        <img src="./image/room-01.jpg" alt="浣熊的房間" className="w-[18rem] h-[24rem] object-cover rounded-2xl mb-2 shadow-inner bg-gray-100" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+                                        <div className="w-[18rem] h-[24rem] bg-gray-200 hidden flex-col items-center justify-center rounded-2xl mb-2 text-gray-400 text-center p-4"><div className="text-center"><div className="text-5xl mb-2">📚</div><div className="text-lg font-bold">圖片讀取失敗<br/>room-01.jpg</div></div></div>
                                         
                                         <div className="absolute bottom-2 right-2 bg-yellow-400 text-white rounded-full p-2 shadow-lg animate-bounce">
                                             <span className="text-2xl">👆</span>
@@ -632,15 +635,15 @@
                     );
                     case 4: return (
                         <div className="content-area bg-orange-50">
-                            <h2 className="text-5xl font-bold text-orange-800 mb-6 text-center">我好想說話，怎麼辦？</h2>
-                            <div className="flex-1 flex flex-col justify-center items-center gap-6 w-full">
-                                <div className="bg-white px-10 py-5 rounded-[2rem] shadow-xl border-8 border-orange-300 flex flex-col items-center cursor-pointer hover:scale-105 transition-transform">
-                                    <span className="text-[6rem] mb-2 leading-none">✋</span><h3 className="text-3xl font-black text-orange-600">等待卡</h3>
+                            <h2 className="text-3xl font-bold text-orange-800 mb-2 mt-2 text-center">我好想說話，怎麼辦？</h2>
+                            <div className="flex-1 flex flex-col justify-center items-center gap-2">
+                                <div className="bg-white px-6 py-2 rounded-[1.5rem] shadow-xl border-4 border-orange-300 flex flex-col items-center cursor-pointer hover:scale-105 transition-transform mb-2">
+                                    <span className="text-[3rem] mb-0 leading-none">✋</span><h3 className="text-xl font-black text-orange-600">等待卡</h3>
                                 </div>
-                                <div className="w-full max-w-2xl space-y-4">
-                                    <div className="flex items-center text-2xl font-bold text-gray-700 bg-white/60 p-3 rounded-2xl"><span className="bg-orange-500 text-white w-10 h-10 text-xl rounded-full flex items-center justify-center mr-4 shadow-md font-black flex-shrink-0">1</span>把「等待卡」舉高高</div>
-                                    <div className="flex items-center text-2xl font-bold text-gray-700 bg-white/60 p-3 rounded-2xl"><span className="bg-orange-500 text-white w-10 h-10 text-xl rounded-full flex items-center justify-center mr-4 shadow-md font-black flex-shrink-0">2</span>嘴巴閉閉，眼睛看老師</div>
-                                    <div className="flex items-center text-2xl font-bold text-gray-700 bg-white/60 p-3 rounded-2xl"><span className="bg-orange-500 text-white w-10 h-10 text-xl rounded-full flex items-center justify-center mr-4 shadow-md font-black flex-shrink-0">3</span>老師點頭，變綠燈再說話</div>
+                                <div className="w-full max-w-2xl space-y-2 pb-1">
+                                    <div className="flex items-center text-lg font-bold text-gray-700 bg-white/50 p-2 rounded-xl"><span className="bg-orange-500 text-white w-6 h-6 text-sm rounded-full flex items-center justify-center mr-3 shadow-md font-black flex-shrink-0">1</span>把「等待卡」舉高</div>
+                                    <div className="flex items-center text-lg font-bold text-gray-700 bg-white/50 p-2 rounded-xl"><span className="bg-orange-500 text-white w-6 h-6 text-sm rounded-full flex items-center justify-center mr-3 shadow-md font-black flex-shrink-0">2</span>請安靜，眼睛看老師</div>
+                                    <div className="flex items-center text-lg font-bold text-gray-700 bg-white/50 p-2 rounded-xl"><span className="bg-orange-500 text-white w-6 h-6 text-sm rounded-full flex items-center justify-center mr-3 shadow-md font-black flex-shrink-0">3</span>老師點頭，變綠燈再說話</div>
                                 </div>
                             </div>
                         </div>
@@ -681,7 +684,7 @@
                         </div>
                     );
                     case 7: 
-                        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href + '?mode=student')}`;
+                        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href + '?mode=student')}`;
                         return (
                             <div className="content-area bg-pink-50 relative px-4 py-2">
                                 <div className="absolute top-4 left-4 flex gap-4">
@@ -728,42 +731,41 @@
                                         const score = calculateScore(student.checks);
                                         const isDone = score === 3;
                                         return (
-                                            <div key={student.id} className="flip-card h-40">
+                                            <div key={student.id} className="flip-card h-48">
                                                 <div className={`flip-card-inner ${revealResults && student.submitted ? 'flipped' : ''}`}>
                                                     {/* 正面：未揭曉 */}
-                                                    <div className={`flip-card-front p-2 shadow-lg border-b-8 ${student.submitted ? 'bg-green-100 border-green-400' : 'bg-white border-pink-200'}`}>
+                                                    <div className={`flip-card-front p-4 shadow-lg border-b-8 ${student.submitted ? 'bg-green-100 border-green-400' : 'bg-white border-pink-200'}`}>
                                                         {!student.submitted ? (
                                                             <>
-                                                                <div className="text-4xl mb-1 animate-pulse grayscale opacity-50">🤔</div>
-                                                                <h3 className="text-2xl font-bold text-gray-500 mb-1">{student.name}</h3>
-                                                                <div className="text-lg font-bold text-gray-400">作答中...</div>
+                                                                <div className="text-5xl mb-2 animate-pulse grayscale opacity-50">🤔</div>
+                                                                <h3 className="text-3xl font-bold text-gray-500 mb-1">{student.name}</h3>
+                                                                <div className="text-xl font-bold text-gray-400">作答中...</div>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <div className="flex flex-col items-center">
-                                                                    <div className="text-4xl mb-1 text-green-600 font-bold">達成 {score} / 3</div>
-                                                                    <h3 className="text-3xl font-bold text-gray-800">{student.name}</h3>
-                                                                </div>
+                                                                <div className="text-6xl mb-2 text-green-500">✅</div>
+                                                                <h3 className="text-3xl font-bold text-gray-800 mb-1">{student.name}</h3>
+                                                                <div className="text-xl font-bold text-green-700">已完成！</div>
                                                             </>
                                                         )}
                                                     </div>
 
                                                     {/* 背面：揭曉 - 顯示完成度細節 */}
-                                                    <div className={`flip-card-back p-2 shadow-lg border-b-8 ${isDone ? 'bg-yellow-100 border-yellow-400' : 'bg-white border-pink-200'}`}>
+                                                    <div className={`flip-card-back p-4 shadow-lg border-b-8 ${isDone ? 'bg-yellow-100 border-yellow-400' : 'bg-white border-pink-200'}`}>
                                                         <div className="flex justify-between items-center w-full px-2 mb-1">
                                                             <h3 className="text-2xl font-bold text-gray-800">{student.name}</h3>
-                                                            <div className={`text-2xl font-black ${isDone ? 'text-yellow-600' : 'text-pink-600'}`}>{score}/3</div>
+                                                            <div className={`text-3xl font-black ${isDone ? 'text-yellow-600' : 'text-pink-600'}`}>{score}/3</div>
                                                         </div>
                                                         
-                                                        {/* 完成度細節燈號 */}
-                                                        <div className="flex gap-2 mb-1 w-full justify-center">
-                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg border-2 shadow-sm ${student.checks.eyes ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>👀</div>
-                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg border-2 shadow-sm ${student.checks.hand ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>✋</div>
-                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg border-2 shadow-sm ${student.checks.mouth ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>🤐</div>
+                                                        {/* 完成度細節燈號 - 加大加粗 */}
+                                                        <div className="flex gap-3 mb-2 w-full justify-center">
+                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-sm ${student.checks.eyes ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>👀</div>
+                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-sm ${student.checks.hand ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>✋</div>
+                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-sm ${student.checks.mouth ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>🤐</div>
                                                         </div>
 
-                                                        <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-200 px-0.5">
-                                                            <div className={`h-2 rounded-full transition-all duration-500 ${isDone ? 'bg-yellow-500' : 'bg-pink-500'}`} style={{width: `${(score/3)*100}%`}}></div>
+                                                        <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-200 px-0.5">
+                                                            <div className={`h-3 rounded-full transition-all duration-500 ${isDone ? 'bg-yellow-500' : 'bg-pink-500'}`} style={{width: `${(score/3)*100}%`}}></div>
                                                         </div>
                                                         {isDone && <div className="text-red-500 font-bold text-lg mt-1">太棒了!</div>}
                                                     </div>
@@ -788,13 +790,13 @@
                         );
                     case 8: return (
                         <div className="content-area bg-yellow-100">
-                            <div className="text-[8rem] animate-pulse drop-shadow-2xl">🌟</div>
-                            <h2 className="text-6xl font-black text-yellow-600 tracking-wider mb-8">任務成功！</h2>
-                            <p className="text-3xl font-bold text-gray-700 bg-white/60 px-10 py-4 rounded-full mb-8">你可以去蓋印章囉！</p>
+                            <div className="text-[10rem] animate-pulse drop-shadow-2xl">🌟</div>
+                            <h2 className="text-7xl font-black text-yellow-600 tracking-wider mb-8">任務成功！</h2>
+                            <p className="text-4xl font-bold text-gray-700 bg-white/60 px-12 py-4 rounded-full mb-8">你可以去蓋印章了！</p>
                             <div className="flex gap-8 mt-4">
-                                <span className="text-7xl animate-bounce" style={{animationDelay: '0s'}}>🦝</span>
-                                <span className="text-7xl animate-bounce" style={{animationDelay: '0.2s'}}>🐰</span>
-                                <span className="text-7xl animate-bounce" style={{animationDelay: '0.4s'}}>🦊</span>
+                                <span className="text-8xl animate-bounce" style={{animationDelay: '0s'}}>🦝</span>
+                                <span className="text-8xl animate-bounce" style={{animationDelay: '0.2s'}}>🐰</span>
+                                <span className="text-8xl animate-bounce" style={{animationDelay: '0.4s'}}>🦊</span>
                             </div>
                         </div>
                     );
