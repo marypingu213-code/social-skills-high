@@ -182,9 +182,10 @@
             }, []);
 
             useEffect(() => {
-                // 如果是單機模式，不嘗試連線，直接顯示錯誤
                 if (!db) {
                     setConnectionStatus("disconnected");
+                    const savedData = localStorage.getItem('local_students_data');
+                    if (savedData) setStudents(JSON.parse(savedData));
                     return;
                 }
 
@@ -192,8 +193,20 @@
                     try {
                         setLoadingError("");
                         setConnectionStatus("connecting");
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await auth.signInWithCustomToken(__initial_auth_token);
+                        
+                        // FIX: 如果使用了 TEACHER_FIREBASE_CONFIG，直接使用匿名登入，忽略預覽環境的 Token
+                        if (TEACHER_FIREBASE_CONFIG) {
+                            console.log("Using custom config, skipping preview token.");
+                            await auth.signInAnonymously();
+                        } 
+                        // 否則如果是預覽環境且有 Token，嘗試使用 Token
+                        else if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            try {
+                                await auth.signInWithCustomToken(__initial_auth_token);
+                            } catch (tokenError) {
+                                console.warn("Token login failed, falling back to anonymous:", tokenError);
+                                await auth.signInAnonymously();
+                            }
                         } else {
                             await auth.signInAnonymously();
                         }
@@ -388,8 +401,8 @@
             if (isTabletMode) {
                 if (selectedStudentId === null) {
                     return (
-                        <div className="tablet-mode-container">
-                            <ConnectionStatus />
+                        <div className="tablet-mode-container p-8">
+                            <div className="absolute top-4 right-4"><ConnectionStatus /></div>
                             {loadingError && <div className="mt-12 text-center bg-red-100 p-4 text-red-600 font-bold rounded-xl border-2 border-red-300">{loadingError}</div>}
                             
                             <h1 className="text-6xl font-black text-pink-800 text-center mb-10 mt-12">我是誰？</h1>
