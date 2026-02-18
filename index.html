@@ -39,13 +39,14 @@
             display: flex;
             flex-direction: column;
         }
+        /* 調整版面：縮小 padding，讓內容更集中不爆框 */
         .content-area {
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 1rem 2rem;
+            padding: 1rem;
             width: 100%;
             height: 100%;
             box-sizing: border-box;
@@ -96,24 +97,25 @@
         }
         .flip-card-back { transform: rotateY(180deg); }
 
-        /* 繪本閱讀器樣式 */
+        /* 繪本閱讀器 */
         .book-reader-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background-color: rgba(0, 0, 0, 0.9);
+            background-color: rgba(0, 0, 0, 0.95);
             z-index: 9999;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         .book-image {
-            max-height: 90vh;
+            max-height: 85vh;
             max-width: 90vw;
             box-shadow: 0 0 20px rgba(255,255,255,0.2);
-            border-radius: 8px;
+            border-radius: 4px;
+            object-fit: contain;
         }
     </style>
 </head>
@@ -191,7 +193,7 @@
             }, []);
 
             return (
-                <div className="absolute bottom-6 left-6 bg-white/90 px-6 py-3 rounded-2xl text-5xl font-mono text-gray-700 font-black z-40 border-4 border-gray-200 shadow-lg tracking-widest">
+                <div className="absolute bottom-4 left-4 bg-white/90 px-4 py-2 rounded-xl text-3xl font-mono text-gray-700 font-bold z-40 border-2 border-gray-300 shadow-md">
                     {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
             );
@@ -226,7 +228,6 @@
                 }
             }, []);
 
-            // Auth Logic
             useEffect(() => {
                 if (!db) {
                     setConnectionStatus("disconnected");
@@ -265,7 +266,6 @@
                 return () => unsubscribe();
             }, []);
 
-            // Firestore Data Logic
             useEffect(() => {
                 if (!user || !db) return;
 
@@ -412,7 +412,6 @@
             useEffect(() => {
                 const handleKeyDown = (e) => {
                     if (isTabletMode) return;
-                    // 如果正在看繪本，方向鍵換頁
                     if (showBook) {
                          if (e.key === 'ArrowRight') setBookPage(p => Math.min(TOTAL_PAGES, p + 1));
                          if (e.key === 'ArrowLeft') setBookPage(p => Math.max(1, p - 1));
@@ -429,38 +428,36 @@
             const ConnectionStatus = () => {
                 let color = "bg-gray-400";
                 let text = "連線中...";
-                if (connectionStatus === "connected") { color = "bg-green-500"; text = "● 連線正常 (v3)"; }
+                if (connectionStatus === "connected") { color = "bg-green-500"; text = "● 連線正常"; }
                 else if (connectionStatus === "disconnected") { color = "bg-red-500"; text = "● 斷線"; }
                 else if (connectionStatus === "connecting") { color = "bg-yellow-500"; text = "● 連線中..."; }
 
                 return (
                     <div className="absolute top-4 right-4 flex items-center gap-2 z-50 bg-white/90 px-3 py-1 rounded-full shadow-md border-2 border-gray-100">
-                        <span className={`text-base font-bold ${color === 'bg-green-500' ? 'text-green-600' : 'text-red-500'}`}>{text}</span>
+                        <span className={`text-sm font-bold ${color === 'bg-green-500' ? 'text-green-600' : 'text-red-500'}`}>{text}</span>
                     </div>
                 );
             };
 
-            // 繪本閱讀器元件
+            // 繪本閱讀器
             const BookReader = () => {
                 if (!showBook) return null;
-                // 圖片路徑邏輯：假設檔案名為 room01.jpg, room02.jpg ... room19.jpg
-                // 注意：如果您的檔案是 .png，請將下方的 .jpg 改為 .png
                 const imagePath = `./image/room${String(bookPage).padStart(2, '0')}.jpg`;
 
                 return (
                     <div className="book-reader-overlay">
                         <button 
                             onClick={() => setShowBook(false)}
-                            className="absolute top-8 right-8 text-white text-5xl font-bold bg-gray-800/50 rounded-full w-16 h-16 flex items-center justify-center hover:bg-red-600 transition-colors z-50"
+                            className="absolute top-6 right-6 text-white text-4xl font-bold bg-gray-800/50 rounded-full w-12 h-12 flex items-center justify-center hover:bg-red-600 transition-colors z-50"
                         >
                             ×
                         </button>
                         
-                        <div className="flex items-center gap-8 w-full justify-center px-4">
+                        <div className="flex items-center gap-4 w-full justify-center px-4">
                             <button 
                                 onClick={(e) => { e.stopPropagation(); setBookPage(p => Math.max(1, p - 1)); }}
                                 disabled={bookPage === 1}
-                                className="text-white text-6xl bg-gray-800/50 rounded-full w-20 h-20 flex items-center justify-center hover:bg-white/20 disabled:opacity-30 transition-all"
+                                className="text-white text-4xl bg-gray-800/50 rounded-full w-16 h-16 flex items-center justify-center hover:bg-white/20 disabled:opacity-30 transition-all"
                             >
                                 ‹
                             </button>
@@ -471,12 +468,11 @@
                                     alt={`Page ${bookPage}`} 
                                     className="book-image"
                                     onError={(e) => {
-                                        // 簡單的錯誤處理，如果圖片沒讀到顯示提示
                                         e.target.style.display = 'none';
-                                        e.target.parentNode.innerHTML = `<div class="text-white text-2xl p-20 border border-white">圖片讀取失敗<br/>請確認檔案位置: ${imagePath}</div>`;
+                                        e.target.parentNode.innerHTML = `<div class="text-white text-xl p-10 border border-white text-center">圖片讀取失敗<br/>請確認檔案位置: ${imagePath}<br/>(GitHub 需注意大小寫)</div>`;
                                     }}
                                 />
-                                <div className="text-white text-2xl font-bold mt-4 bg-black/50 px-6 py-2 rounded-full">
+                                <div className="text-white text-xl font-bold mt-2 bg-black/50 px-4 py-1 rounded-full">
                                     {bookPage} / {TOTAL_PAGES}
                                 </div>
                             </div>
@@ -484,7 +480,7 @@
                             <button 
                                 onClick={(e) => { e.stopPropagation(); setBookPage(p => Math.min(TOTAL_PAGES, p + 1)); }}
                                 disabled={bookPage === TOTAL_PAGES}
-                                className="text-white text-6xl bg-gray-800/50 rounded-full w-20 h-20 flex items-center justify-center hover:bg-white/20 disabled:opacity-30 transition-all"
+                                className="text-white text-4xl bg-gray-800/50 rounded-full w-16 h-16 flex items-center justify-center hover:bg-white/20 disabled:opacity-30 transition-all"
                             >
                                 ›
                             </button>
@@ -499,10 +495,9 @@
                     return (
                         <div className="tablet-mode-container p-4">
                             <ConnectionStatus />
-                            <Clock />
                             {loadingError && <div className="mt-8 text-center bg-red-100 p-2 text-red-600 font-bold rounded-xl border-2 border-red-300">{loadingError}</div>}
                             
-                            <h1 className="text-5xl font-black text-pink-800 text-center mb-6 mt-4">我是誰？</h1>
+                            <h1 className="text-4xl font-black text-pink-800 text-center mb-6 mt-4">我是誰？</h1>
                             
                             <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
                                 {students.map(student => (
@@ -514,8 +509,8 @@
                                         }}
                                         className={`p-6 rounded-2xl shadow-md border-b-8 active:translate-y-1 active:border-b-0 transition-all ${student.submitted ? 'bg-green-100 border-green-400' : 'bg-white border-pink-300'}`}
                                     >
-                                        <div className="text-4xl font-bold text-gray-800">{student.name}</div>
-                                        {student.submitted && <div className="mt-2 text-2xl font-bold text-green-700">已送出 ✅</div>}
+                                        <div className="text-3xl font-bold text-gray-800">{student.name}</div>
+                                        {student.submitted && <div className="mt-2 text-xl font-bold text-green-700">已送出 ✅</div>}
                                     </button>
                                 ))}
                             </div>
@@ -529,19 +524,19 @@
                     return (
                         <div className="tablet-mode-container flex flex-col items-center">
                             <ConnectionStatus />
-                            <div className="w-full max-w-3xl flex justify-between items-center mb-6 mt-4">
-                                <h2 className="text-5xl font-black text-pink-800">{currentStudent.name}</h2>
-                                <button onClick={() => setSelectedStudentId(null)} className="bg-gray-200 text-gray-700 px-6 py-3 rounded-full font-bold text-2xl shadow-md">返回</button>
+                            <div className="w-full max-w-3xl flex justify-between items-center mb-4 mt-4">
+                                <h2 className="text-4xl font-black text-pink-800">{currentStudent.name}</h2>
+                                <button onClick={() => setSelectedStudentId(null)} className="bg-gray-200 text-gray-700 px-6 py-2 rounded-full font-bold text-xl shadow-md">返回</button>
                             </div>
                             
-                            <div className="flex-1 w-full max-w-3xl space-y-4 relative">
+                            <div className="flex-1 w-full max-w-3xl space-y-3 relative">
                                 {isSubmitted && (
                                     <div className="absolute inset-0 bg-white/95 z-10 rounded-3xl flex flex-col items-center justify-center backdrop-blur-sm border-4 border-green-200">
-                                        <div className="text-8xl mb-4">✅</div>
-                                        <div className="text-5xl font-bold text-green-700 mb-8">答案已送出！</div>
+                                        <div className="text-6xl mb-4">✅</div>
+                                        <div className="text-4xl font-bold text-green-700 mb-6">答案已送出！</div>
                                         <button 
                                             onClick={() => submitStudentData(currentStudent.id, false)}
-                                            className="bg-gray-500 text-white px-8 py-4 rounded-full font-bold text-3xl shadow-lg hover:bg-gray-600"
+                                            className="bg-gray-500 text-white px-8 py-3 rounded-full font-bold text-2xl shadow-lg hover:bg-gray-600"
                                             disabled={isSubmitting}
                                         >
                                             {isSubmitting ? '處理中...' : '修改答案'}
@@ -550,19 +545,19 @@
                                 )}
 
                                 {[{ key: 'eyes', icon: '👀', text: '我有看紅綠燈' }, { key: 'hand', icon: '✋', text: '我想說話有舉手' }, { key: 'mouth', icon: '🤐', text: '別人說話我安靜' }].map(item => (
-                                    <div key={item.key} onClick={() => !isSubmitted && updateStudentCheck(currentStudent.id, item.key, currentStudent.checks[item.key])} className={`flex items-center p-6 bg-white rounded-2xl shadow-md cursor-pointer transition-all border-l-[16px] active:scale-95 ${currentStudent.checks[item.key] ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
-                                        <div className={`w-16 h-16 rounded-xl border-4 mr-6 flex items-center justify-center transition-colors flex-shrink-0 ${currentStudent.checks[item.key] ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>{currentStudent.checks[item.key] && <span className="text-4xl text-white font-bold">✓</span>}</div>
-                                        <span className="text-5xl mr-4">{item.icon}</span><span className="text-3xl font-bold text-gray-700">{item.text}</span>
+                                    <div key={item.key} onClick={() => !isSubmitted && updateStudentCheck(currentStudent.id, item.key, currentStudent.checks[item.key])} className={`flex items-center p-5 bg-white rounded-2xl shadow-md cursor-pointer transition-all border-l-[12px] active:scale-95 ${currentStudent.checks[item.key] ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
+                                        <div className={`w-14 h-14 rounded-xl border-4 mr-4 flex items-center justify-center transition-colors flex-shrink-0 ${currentStudent.checks[item.key] ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>{currentStudent.checks[item.key] && <span className="text-3xl text-white font-bold">✓</span>}</div>
+                                        <span className="text-4xl mr-4">{item.icon}</span><span className="text-3xl font-bold text-gray-700">{item.text}</span>
                                     </div>
                                 ))}
                             </div>
                             
                             {!isSubmitted && (
-                                <div className="mt-8 mb-8 w-full max-w-3xl">
+                                <div className="mt-6 mb-8 w-full max-w-3xl">
                                     <button 
                                         onClick={() => submitStudentData(currentStudent.id, true)}
                                         disabled={isSubmitting}
-                                        className={`w-full text-white text-5xl font-black py-6 rounded-3xl shadow-xl border-b-[10px] active:translate-y-2 active:border-b-0 transition-all flex items-center justify-center gap-4 ${isSubmitting ? 'bg-gray-400 border-gray-600 cursor-wait' : 'bg-pink-500 hover:bg-pink-600 border-pink-700'}`}
+                                        className={`w-full text-white text-4xl font-black py-4 rounded-3xl shadow-xl border-b-8 active:translate-y-2 active:border-b-0 transition-all flex items-center justify-center gap-4 ${isSubmitting ? 'bg-gray-400 border-gray-600 cursor-wait' : 'bg-pink-500 hover:bg-pink-600 border-pink-700'}`}
                                     >
                                         {isSubmitting ? '傳送中...' : <span>🚀 確認送出</span>}
                                     </button>
@@ -577,19 +572,19 @@
                 switch(currentSlide) {
                     case 0: return (
                         <div className="content-area bg-blue-50">
-                            <div className="text-[10rem] animate-bounce-slow mt-2">🦝</div>
+                            <div className="text-8xl animate-bounce-slow mb-4">🦝</div>
                             <h1 className="text-6xl font-black text-blue-800 tracking-wider mb-4">社會技巧課</h1>
-                            <div className="bg-white px-8 py-4 rounded-3xl border-[6px] border-blue-300 shadow-xl mb-4"><h2 className="text-4xl font-bold text-gray-700">浣熊的房間與說話規則</h2></div>
-                            <p className="text-2xl text-gray-500 font-bold">準備好你的耳朵和眼睛了嗎？</p>
+                            <div className="bg-white px-8 py-3 rounded-2xl border-4 border-blue-300 shadow-xl mb-4"><h2 className="text-3xl font-bold text-gray-700">浣熊的房間與說話規則</h2></div>
+                            <p className="text-xl text-gray-500 font-bold">準備好你的耳朵和眼睛了嗎？</p>
                         </div>
                     );
                     case 1: return (
                         <div className="content-area bg-yellow-50">
-                            <h2 className="text-5xl font-bold text-yellow-800 border-b-8 border-yellow-200 pb-2 mb-6">今天的任務</h2>
-                            <div className="flex-1 flex flex-col justify-center gap-6 w-full max-w-4xl">
-                                <div className="flex items-center p-6 bg-white rounded-2xl shadow-lg border-l-[12px] border-blue-500 hover:scale-105 transition-transform"><span className="text-6xl mr-8">📖</span><span className="text-4xl font-bold text-gray-700">1. 聽繪本故事</span></div>
-                                <div className="flex items-center p-6 bg-white rounded-2xl shadow-lg border-l-[12px] border-green-500 hover:scale-105 transition-transform"><span className="text-6xl mr-8">🎲</span><span className="text-4xl font-bold text-gray-700">2. 玩「說話遊戲」</span></div>
-                                <div className="flex items-center p-6 bg-white rounded-2xl shadow-lg border-l-[12px] border-red-500 hover:scale-105 transition-transform"><span className="text-6xl mr-8">⭐</span><span className="text-4xl font-bold text-gray-700">3. 領取獎勵貼紙</span></div>
+                            <h2 className="text-5xl font-bold text-yellow-800 border-b-4 border-yellow-200 pb-2 mb-6">今天的任務</h2>
+                            <div className="flex-1 flex flex-col justify-center gap-6 w-full max-w-3xl">
+                                <div className="flex items-center p-4 bg-white rounded-2xl shadow-lg border-l-[12px] border-blue-500 hover:scale-105 transition-transform"><span className="text-5xl mr-6">📖</span><span className="text-3xl font-bold text-gray-700">1. 聽繪本故事</span></div>
+                                <div className="flex items-center p-4 bg-white rounded-2xl shadow-lg border-l-[12px] border-green-500 hover:scale-105 transition-transform"><span className="text-5xl mr-6">🎲</span><span className="text-3xl font-bold text-gray-700">2. 玩「說話遊戲」</span></div>
+                                <div className="flex items-center p-4 bg-white rounded-2xl shadow-lg border-l-[12px] border-red-500 hover:scale-105 transition-transform"><span className="text-5xl mr-6">⭐</span><span className="text-3xl font-bold text-gray-700">3. 領取獎勵貼紙</span></div>
                             </div>
                         </div>
                     );
@@ -597,41 +592,40 @@
                         <div className="content-area bg-white">
                             <h2 className="text-5xl font-bold text-center text-gray-800 mb-6">教室裡的紅綠燈</h2>
                             <div className="flex justify-around items-center w-full flex-1 gap-4">
-                                <div className={`flex flex-col items-center p-8 rounded-3xl transition-all duration-300 cursor-pointer ${lightStatus === 'red' ? 'bg-red-50 scale-105 border-8 border-red-400 shadow-xl' : 'opacity-40 grayscale hover:opacity-70'}`} onClick={() => setLightStatus('red')}>
-                                    <div className="w-40 h-40 rounded-full bg-red-500 shadow-xl flex items-center justify-center mb-4 border-8 border-white ring-4 ring-red-200"><span className="text-7xl">👂</span></div>
-                                    <h3 className="text-4xl font-black text-red-600 mb-2">紅燈</h3><p className="text-2xl font-bold text-gray-600">耳朵打開<br/>嘴巴拉拉鍊</p>
+                                <div className={`flex flex-col items-center p-6 rounded-3xl transition-all duration-300 cursor-pointer ${lightStatus === 'red' ? 'bg-red-50 scale-105 border-8 border-red-400 shadow-xl' : 'opacity-40 grayscale hover:opacity-70'}`} onClick={() => setLightStatus('red')}>
+                                    <div className="w-32 h-32 rounded-full bg-red-500 shadow-xl flex items-center justify-center mb-4 border-8 border-white ring-4 ring-red-200"><span className="text-6xl">👂</span></div>
+                                    <h3 className="text-3xl font-black text-red-600 mb-2">紅燈</h3><p className="text-xl font-bold text-gray-600">耳朵打開<br/>嘴巴拉拉鍊</p>
                                 </div>
-                                <div className={`flex flex-col items-center p-8 rounded-3xl transition-all duration-300 cursor-pointer ${lightStatus === 'green' ? 'bg-green-50 scale-105 border-8 border-green-400 shadow-xl' : 'opacity-40 grayscale hover:opacity-70'}`} onClick={() => setLightStatus('green')}>
-                                    <div className="w-40 h-40 rounded-full bg-green-500 shadow-xl flex items-center justify-center mb-4 border-8 border-white ring-4 ring-green-200"><span className="text-7xl">🗣️</span></div>
-                                    <h3 className="text-4xl font-black text-green-600 mb-2">綠燈</h3><p className="text-2xl font-bold text-gray-600">現在輪到你<br/>可以說話</p>
+                                <div className={`flex flex-col items-center p-6 rounded-3xl transition-all duration-300 cursor-pointer ${lightStatus === 'green' ? 'bg-green-50 scale-105 border-8 border-green-400 shadow-xl' : 'opacity-40 grayscale hover:opacity-70'}`} onClick={() => setLightStatus('green')}>
+                                    <div className="w-32 h-32 rounded-full bg-green-500 shadow-xl flex items-center justify-center mb-4 border-8 border-white ring-4 ring-green-200"><span className="text-6xl">🗣️</span></div>
+                                    <h3 className="text-3xl font-black text-green-600 mb-2">綠燈</h3><p className="text-xl font-bold text-gray-600">現在輪到你<br/>可以說話</p>
                                 </div>
                             </div>
                         </div>
                     );
                     case 3: return (
                         <div className="content-area bg-indigo-50">
-                            <h2 className="text-5xl font-bold text-indigo-900 mb-6">現在是什麼燈？</h2>
-                            <div className="flex items-center justify-center gap-12 w-full flex-1">
+                            <h2 className="text-5xl font-bold text-indigo-900 mb-4">現在是什麼燈？</h2>
+                            <div className="flex items-center justify-center gap-8 w-full flex-1">
                                 <div 
-                                    className="bg-white p-6 rounded-3xl shadow-xl border-8 border-indigo-200 transform -rotate-2 cursor-pointer hover:scale-105 transition-transform"
+                                    className="bg-white p-4 rounded-3xl shadow-xl border-4 border-indigo-200 transform -rotate-2 cursor-pointer hover:scale-105 transition-transform"
                                     onClick={() => { setBookPage(1); setShowBook(true); }}
                                     title="點擊閱讀繪本"
                                 >
                                     <div className="relative">
-                                        <img src="./room.png" alt="浣熊的房間" className="w-[20rem] h-[26rem] object-cover rounded-2xl mb-4 shadow-inner bg-gray-100" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-                                        <div className="w-[20rem] h-[26rem] bg-gray-200 hidden flex-col items-center justify-center rounded-2xl mb-4 text-gray-400 text-center p-4"><div className="text-center"><div className="text-6xl mb-4">📚</div><div className="text-xl font-bold">圖片讀取失敗<br/>room.png</div></div></div>
+                                        <img src="./image/room01.jpg" alt="浣熊的房間" className="w-[18rem] h-[24rem] object-cover rounded-2xl mb-2 shadow-inner bg-gray-100" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+                                        <div className="w-[18rem] h-[24rem] bg-gray-200 hidden flex-col items-center justify-center rounded-2xl mb-2 text-gray-400 text-center p-4"><div className="text-center"><div className="text-5xl mb-2">📚</div><div className="text-lg font-bold">圖片讀取失敗<br/>room.png</div></div></div>
                                         
-                                        {/* 手指提示圖示 */}
                                         <div className="absolute bottom-2 right-2 bg-yellow-400 text-white rounded-full p-2 shadow-lg animate-bounce">
-                                            <span className="text-3xl">👆</span>
+                                            <span className="text-2xl">👆</span>
                                         </div>
                                     </div>
-                                    <p className="text-3xl text-center font-bold text-gray-700">老師在講故事</p>
+                                    <p className="text-2xl text-center font-bold text-gray-700">老師在講故事</p>
                                 </div>
-                                <div className="text-8xl font-bold text-indigo-300 animate-pulse">➡️</div>
+                                <div className="text-6xl font-bold text-indigo-300 animate-pulse">➡️</div>
                                 <div className="flex flex-col items-center animate-bounce-slow">
-                                    <div className="w-40 h-40 rounded-full bg-red-500 shadow-2xl flex items-center justify-center border-8 border-white ring-4 ring-red-200"><span className="text-7xl">🤫</span></div>
-                                    <p className="text-4xl font-bold text-red-600 mt-6 bg-white px-8 py-3 rounded-full shadow-lg border-4 border-red-100">現在是紅燈</p>
+                                    <div className="w-32 h-32 rounded-full bg-red-500 shadow-2xl flex items-center justify-center border-8 border-white ring-4 ring-red-200"><span className="text-6xl">🤫</span></div>
+                                    <p className="text-3xl font-bold text-red-600 mt-4 bg-white px-6 py-2 rounded-full shadow-lg border-4 border-red-100">現在是紅燈</p>
                                 </div>
                             </div>
                         </div>
@@ -640,13 +634,13 @@
                         <div className="content-area bg-orange-50">
                             <h2 className="text-5xl font-bold text-orange-800 mb-6 text-center">我好想說話，怎麼辦？</h2>
                             <div className="flex-1 flex flex-col justify-center items-center gap-6 w-full">
-                                <div className="bg-white px-12 py-6 rounded-[2rem] shadow-xl border-8 border-orange-300 flex flex-col items-center cursor-pointer hover:scale-105 transition-transform">
-                                    <span className="text-[8rem] mb-2 leading-none">✋</span><h3 className="text-4xl font-black text-orange-600">等待卡</h3>
+                                <div className="bg-white px-10 py-5 rounded-[2rem] shadow-xl border-8 border-orange-300 flex flex-col items-center cursor-pointer hover:scale-105 transition-transform">
+                                    <span className="text-[6rem] mb-2 leading-none">✋</span><h3 className="text-3xl font-black text-orange-600">等待卡</h3>
                                 </div>
-                                <div className="w-full max-w-3xl space-y-4">
-                                    <div className="flex items-center text-3xl font-bold text-gray-700 bg-white/60 p-4 rounded-2xl"><span className="bg-orange-500 text-white w-10 h-10 text-2xl rounded-full flex items-center justify-center mr-6 shadow-md font-black flex-shrink-0">1</span>把「等待卡」舉高高</div>
-                                    <div className="flex items-center text-3xl font-bold text-gray-700 bg-white/60 p-4 rounded-2xl"><span className="bg-orange-500 text-white w-10 h-10 text-2xl rounded-full flex items-center justify-center mr-6 shadow-md font-black flex-shrink-0">2</span>嘴巴閉閉，眼睛看老師</div>
-                                    <div className="flex items-center text-3xl font-bold text-gray-700 bg-white/60 p-4 rounded-2xl"><span className="bg-orange-500 text-white w-10 h-10 text-2xl rounded-full flex items-center justify-center mr-6 shadow-md font-black flex-shrink-0">3</span>老師點頭，變綠燈再說話</div>
+                                <div className="w-full max-w-2xl space-y-4">
+                                    <div className="flex items-center text-2xl font-bold text-gray-700 bg-white/60 p-3 rounded-2xl"><span className="bg-orange-500 text-white w-10 h-10 text-xl rounded-full flex items-center justify-center mr-4 shadow-md font-black flex-shrink-0">1</span>把「等待卡」舉高高</div>
+                                    <div className="flex items-center text-2xl font-bold text-gray-700 bg-white/60 p-3 rounded-2xl"><span className="bg-orange-500 text-white w-10 h-10 text-xl rounded-full flex items-center justify-center mr-4 shadow-md font-black flex-shrink-0">2</span>嘴巴閉閉，眼睛看老師</div>
+                                    <div className="flex items-center text-2xl font-bold text-gray-700 bg-white/60 p-3 rounded-2xl"><span className="bg-orange-500 text-white w-10 h-10 text-xl rounded-full flex items-center justify-center mr-4 shadow-md font-black flex-shrink-0">3</span>老師點頭，變綠燈再說話</div>
                                 </div>
                             </div>
                         </div>
@@ -654,20 +648,20 @@
                     case 5: return (
                         <div className="content-area bg-white">
                             <h2 className="text-5xl font-bold text-center text-purple-800 mb-6">幫幫小兔子！</h2>
-                            <div className="flex-1 flex items-center justify-center space-x-12 w-full">
+                            <div className="flex-1 flex items-center justify-center space-x-8 w-full">
                                 <div className="relative group">
-                                    <span className="text-[10rem] block transform group-hover:-translate-y-4 transition-transform duration-300">🐰</span>
-                                    <div className="absolute -top-16 -right-24 bg-white border-4 border-gray-800 rounded-2xl p-4 shadow-xl w-60 z-10 bubble-bottom-left"><p className="text-xl font-bold leading-relaxed">我告訴你喔！那個浣熊後來就...</p></div>
-                                    <p className="text-center text-2xl font-bold mt-4 bg-purple-100 py-2 px-6 rounded-full text-purple-800">阿白 (一直說)</p>
+                                    <span className="text-[8rem] block transform group-hover:-translate-y-4 transition-transform duration-300">🐰</span>
+                                    <div className="absolute -top-12 -right-20 bg-white border-4 border-gray-800 rounded-2xl p-3 shadow-xl w-48 z-10 bubble-bottom-left"><p className="text-lg font-bold leading-relaxed">我告訴你喔！那個浣熊後來就...</p></div>
+                                    <p className="text-center text-xl font-bold mt-2 bg-purple-100 py-2 px-6 rounded-full text-purple-800">阿白 (一直說)</p>
                                 </div>
                                 <div className="relative opacity-60">
-                                    <span className="text-[10rem] block transform scale-x-[-1]">🐰</span>
-                                    <div className="absolute -top-8 -left-12 animate-pulse"><span className="text-6xl">😖</span></div>
-                                    <p className="text-center text-2xl font-bold mt-4 bg-gray-200 py-2 px-6 rounded-full text-gray-600">土土 (想安靜)</p>
+                                    <span className="text-[8rem] block transform scale-x-[-1]">🐰</span>
+                                    <div className="absolute -top-6 -left-10 animate-pulse"><span className="text-4xl">😖</span></div>
+                                    <p className="text-center text-xl font-bold mt-2 bg-gray-200 py-2 px-6 rounded-full text-gray-600">土土 (想安靜)</p>
                                 </div>
                             </div>
-                            <div className="bg-purple-100 p-6 rounded-3xl text-center mt-6 max-w-3xl mx-auto border-4 border-purple-200 mb-4">
-                                <p className="text-3xl font-bold text-purple-900 mb-2">阿白忘記看紅綠燈了！</p><p className="text-2xl text-purple-700 font-bold">誰可以拿「等待卡」教教他？</p>
+                            <div className="bg-purple-100 p-4 rounded-3xl text-center mt-6 max-w-2xl mx-auto border-4 border-purple-200 mb-4">
+                                <p className="text-2xl font-bold text-purple-900 mb-2">阿白忘記看紅綠燈了！</p><p className="text-xl text-purple-700 font-bold">誰可以拿「等待卡」教教他？</p>
                             </div>
                         </div>
                     );
@@ -675,19 +669,19 @@
                         <div className="content-area bg-cyan-50">
                             <h2 className="text-5xl font-bold text-cyan-800 mb-6">這是誰的發言時間？</h2>
                             <div className="flex-1 flex flex-col justify-center items-center w-full">
-                                <div className="bg-gradient-to-br from-gray-700 to-gray-900 p-8 rounded-full shadow-2xl mb-8 border-8 border-gray-300 transform hover:scale-110 transition-transform duration-500"><span className="text-[8rem] text-white">🎤</span></div>
-                                <div className="bg-white p-8 rounded-3xl shadow-xl border-l-[20px] border-cyan-500 max-w-4xl w-full">
-                                    <div className="grid grid-cols-2 gap-8 text-center">
-                                        <div className="p-6 bg-green-50 rounded-2xl"><p className="text-2xl text-gray-500 mb-2">有拿 <span className="text-cyan-600 font-bold">麥克風</span></p><p className="text-4xl font-black text-green-600">= 綠燈 🟢</p></div>
-                                        <div className="p-6 bg-red-50 rounded-2xl"><p className="text-2xl text-gray-500 mb-2">沒有拿的人</p><p className="text-4xl font-black text-red-600">= 紅燈 🔴</p></div>
+                                <div className="bg-gradient-to-br from-gray-700 to-gray-900 p-6 rounded-full shadow-2xl mb-6 border-8 border-gray-300 transform hover:scale-110 transition-transform duration-500"><span className="text-[6rem] text-white">🎤</span></div>
+                                <div className="bg-white p-6 rounded-3xl shadow-xl border-l-[16px] border-cyan-500 max-w-3xl w-full">
+                                    <div className="grid grid-cols-2 gap-6 text-center">
+                                        <div className="p-4 bg-green-50 rounded-2xl"><p className="text-xl text-gray-500 mb-2">有拿 <span className="text-cyan-600 font-bold">麥克風</span></p><p className="text-3xl font-black text-green-600">= 綠燈 🟢</p></div>
+                                        <div className="p-4 bg-red-50 rounded-2xl"><p className="text-xl text-gray-500 mb-2">沒有拿的人</p><p className="text-3xl font-black text-red-600">= 紅燈 🔴</p></div>
                                     </div>
                                 </div>
-                                <p className="mt-8 text-3xl text-gray-600 font-bold bg-white/80 px-8 py-3 rounded-full border-4 border-cyan-200 shadow-lg">如果你想拿麥克風，要先做什麼？</p>
+                                <p className="mt-6 text-2xl text-gray-600 font-bold bg-white/80 px-6 py-2 rounded-full border-4 border-cyan-200 shadow-lg">如果你想拿麥克風，要先做什麼？</p>
                             </div>
                         </div>
                     );
                     case 7: 
-                        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href + '?mode=student')}`;
+                        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href + '?mode=student')}`;
                         return (
                             <div className="content-area bg-pink-50 relative px-4 py-2">
                                 <div className="absolute top-4 left-4 flex gap-4">
@@ -734,41 +728,42 @@
                                         const score = calculateScore(student.checks);
                                         const isDone = score === 3;
                                         return (
-                                            <div key={student.id} className="flip-card h-48">
+                                            <div key={student.id} className="flip-card h-40">
                                                 <div className={`flip-card-inner ${revealResults && student.submitted ? 'flipped' : ''}`}>
                                                     {/* 正面：未揭曉 */}
-                                                    <div className={`flip-card-front p-4 shadow-lg border-b-8 ${student.submitted ? 'bg-green-100 border-green-400' : 'bg-white border-pink-200'}`}>
+                                                    <div className={`flip-card-front p-2 shadow-lg border-b-8 ${student.submitted ? 'bg-green-100 border-green-400' : 'bg-white border-pink-200'}`}>
                                                         {!student.submitted ? (
                                                             <>
-                                                                <div className="text-5xl mb-2 animate-pulse grayscale opacity-50">🤔</div>
-                                                                <h3 className="text-3xl font-bold text-gray-500 mb-1">{student.name}</h3>
-                                                                <div className="text-xl font-bold text-gray-400">作答中...</div>
+                                                                <div className="text-4xl mb-1 animate-pulse grayscale opacity-50">🤔</div>
+                                                                <h3 className="text-2xl font-bold text-gray-500 mb-1">{student.name}</h3>
+                                                                <div className="text-lg font-bold text-gray-400">作答中...</div>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <div className="text-6xl mb-2 text-green-500">✅</div>
-                                                                <h3 className="text-3xl font-bold text-gray-800 mb-1">{student.name}</h3>
-                                                                <div className="text-xl font-bold text-green-700">已完成！</div>
+                                                                <div className="flex flex-col items-center">
+                                                                    <div className="text-4xl mb-1 text-green-600 font-bold">達成 {score} / 3</div>
+                                                                    <h3 className="text-3xl font-bold text-gray-800">{student.name}</h3>
+                                                                </div>
                                                             </>
                                                         )}
                                                     </div>
 
                                                     {/* 背面：揭曉 - 顯示完成度細節 */}
-                                                    <div className={`flip-card-back p-4 shadow-lg border-b-8 ${isDone ? 'bg-yellow-100 border-yellow-400' : 'bg-white border-pink-200'}`}>
+                                                    <div className={`flip-card-back p-2 shadow-lg border-b-8 ${isDone ? 'bg-yellow-100 border-yellow-400' : 'bg-white border-pink-200'}`}>
                                                         <div className="flex justify-between items-center w-full px-2 mb-1">
                                                             <h3 className="text-2xl font-bold text-gray-800">{student.name}</h3>
-                                                            <div className={`text-3xl font-black ${isDone ? 'text-yellow-600' : 'text-pink-600'}`}>{score}/3</div>
+                                                            <div className={`text-2xl font-black ${isDone ? 'text-yellow-600' : 'text-pink-600'}`}>{score}/3</div>
                                                         </div>
                                                         
-                                                        {/* 完成度細節燈號 - 加大加粗 */}
-                                                        <div className="flex gap-3 mb-2 w-full justify-center">
-                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-sm ${student.checks.eyes ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>👀</div>
-                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-sm ${student.checks.hand ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>✋</div>
-                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-sm ${student.checks.mouth ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>🤐</div>
+                                                        {/* 完成度細節燈號 */}
+                                                        <div className="flex gap-2 mb-1 w-full justify-center">
+                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg border-2 shadow-sm ${student.checks.eyes ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>👀</div>
+                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg border-2 shadow-sm ${student.checks.hand ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>✋</div>
+                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg border-2 shadow-sm ${student.checks.mouth ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>🤐</div>
                                                         </div>
 
-                                                        <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-200 px-0.5">
-                                                            <div className={`h-3 rounded-full transition-all duration-500 ${isDone ? 'bg-yellow-500' : 'bg-pink-500'}`} style={{width: `${(score/3)*100}%`}}></div>
+                                                        <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-200 px-0.5">
+                                                            <div className={`h-2 rounded-full transition-all duration-500 ${isDone ? 'bg-yellow-500' : 'bg-pink-500'}`} style={{width: `${(score/3)*100}%`}}></div>
                                                         </div>
                                                         {isDone && <div className="text-red-500 font-bold text-lg mt-1">太棒了!</div>}
                                                     </div>
@@ -785,21 +780,21 @@
                                     </div>
                                 ) : (
                                     <div className="absolute bottom-4 right-4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-4 border-4 border-pink-200">
-                                        <img src={qrCodeUrl} alt="Scan" className="w-24 h-24" />
-                                        <div className="text-left"><p className="font-bold text-gray-700 text-2xl">掃描加入</p><p className="text-lg text-gray-500">平板模式</p></div>
+                                        <img src={qrCodeUrl} alt="Scan" className="w-20 h-20" />
+                                        <div className="text-left"><p className="font-bold text-gray-700 text-xl">掃描加入</p><p className="text-base text-gray-500">平板模式</p></div>
                                     </div>
                                 )}
                             </div>
                         );
                     case 8: return (
                         <div className="content-area bg-yellow-100">
-                            <div className="text-[10rem] animate-pulse drop-shadow-2xl">🌟</div>
-                            <h2 className="text-7xl font-black text-yellow-600 tracking-wider mb-8">任務成功！</h2>
-                            <p className="text-4xl font-bold text-gray-700 bg-white/60 px-12 py-4 rounded-full mb-12">你可以去領獎勵貼紙囉！</p>
+                            <div className="text-[8rem] animate-pulse drop-shadow-2xl">🌟</div>
+                            <h2 className="text-6xl font-black text-yellow-600 tracking-wider mb-8">任務成功！</h2>
+                            <p className="text-3xl font-bold text-gray-700 bg-white/60 px-10 py-4 rounded-full mb-8">你可以去領獎勵貼紙囉！</p>
                             <div className="flex gap-8 mt-4">
-                                <span className="text-8xl animate-bounce" style={{animationDelay: '0s'}}>🦝</span>
-                                <span className="text-8xl animate-bounce" style={{animationDelay: '0.2s'}}>🐰</span>
-                                <span className="text-8xl animate-bounce" style={{animationDelay: '0.4s'}}>🦊</span>
+                                <span className="text-7xl animate-bounce" style={{animationDelay: '0s'}}>🦝</span>
+                                <span className="text-7xl animate-bounce" style={{animationDelay: '0.2s'}}>🐰</span>
+                                <span className="text-7xl animate-bounce" style={{animationDelay: '0.4s'}}>🦊</span>
                             </div>
                         </div>
                     );
