@@ -131,7 +131,6 @@
         const firebaseConfig = getFirebaseConfig();
         let db = null;
         let auth = null;
-        // 使用固定的集合名稱 V2，避免與舊資料衝突
         const COLLECTION_NAME = 'students_session_v2_safe_ids';
         const appId = firebaseConfig ? firebaseConfig.projectId : 'classroom-raccoon-001';
         
@@ -146,7 +145,6 @@
             }
         }
 
-        // 使用安全的 ID (s1, s2...) 對應中文名字，避免編碼問題
         const STUDENT_DATA = [
             { id: 's1', name: '瑀安' },
             { id: 's2', name: '承熙' },
@@ -179,7 +177,6 @@
             const [loadingError, setLoadingError] = useState("");
             const [connectionStatus, setConnectionStatus] = useState("connecting");
             const [revealResults, setRevealResults] = useState(false);
-            const [isSubmitting, setIsSubmitting] = useState(false); // 平板送出轉圈圈
 
             useEffect(() => {
                 const params = new URLSearchParams(window.location.search);
@@ -191,7 +188,6 @@
                 }
             }, []);
 
-            // Auth Logic
             useEffect(() => {
                 if (!db) {
                     setConnectionStatus("disconnected");
@@ -205,14 +201,10 @@
                         setLoadingError("");
                         setConnectionStatus("connecting");
                         
-                        // FIX: 如果設定了 TEACHER_FIREBASE_CONFIG，直接強制使用匿名登入
-                        // 避免使用預覽環境的 Token 導致 auth/custom-token-mismatch 錯誤
                         if (TEACHER_FIREBASE_CONFIG) {
                             console.log("Using custom config, forcing anonymous login.");
                             await auth.signInAnonymously();
-                        } 
-                        // 只有在沒有自訂設定且有預覽 Token 時才使用 Token
-                        else if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        } else if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             try {
                                 await auth.signInWithCustomToken(__initial_auth_token);
                             } catch (tokenError) {
@@ -243,7 +235,6 @@
                 return () => unsubscribe();
             }, []);
 
-            // Firestore Data Logic
             useEffect(() => {
                 if (!user || !db) return;
 
@@ -263,7 +254,6 @@
                         setStudents(loadedStudents);
                         setLoadingError("");
                     } else {
-                        // 只在真正沒有資料時才初始化，避免覆蓋
                         initializeStudents(studentsRef);
                     }
                 }, (error) => {
@@ -330,7 +320,6 @@
             };
 
             const updateStudentCheck = async (studentId, checkItem, currentValue) => {
-                // 平板端操作：先更新本地，再傳雲端
                 const nextValue = !currentValue;
                 setStudents(prev => prev.map(s => {
                     if (s.id === studentId) {
@@ -345,7 +334,6 @@
                                              .collection('public').doc('data')
                                              .collection(COLLECTION_NAME)
                                              .doc(studentId);
-                        // 不使用 await，讓它在背景執行，不卡介面
                         studentRef.update({ [`checks.${checkItem}`]: nextValue });
                     } catch (e) { console.error("Sync failed", e); }
                 } else {
@@ -359,26 +347,22 @@
                     return;
                 }
 
-                setIsSubmitting(true);
+                // 1. 馬上更新畫面 (讓學生覺得秒傳)
+                setStudents(prev => prev.map(s => {
+                    if (s.id === studentId) return { ...s, submitted: status };
+                    return s;
+                }));
 
+                // 2. 背景傳送資料 (不使用 await 阻擋)
                 try {
                     const studentRef = db.collection('artifacts').doc(appId)
                                          .collection('public').doc('data')
                                          .collection(COLLECTION_NAME)
                                          .doc(studentId);
-                    // 這裡必須使用 await 確保雲端收到
-                    await studentRef.update({ submitted: status });
-                    
-                    // 成功後更新本地狀態
-                    setStudents(prev => prev.map(s => {
-                        if (s.id === studentId) return { ...s, submitted: status };
-                        return s;
-                    }));
+                    studentRef.update({ submitted: status });
                 } catch (e) {
                     console.error("Sync failed", e);
-                    alert("送出失敗：" + e.message);
-                } finally {
-                    setIsSubmitting(false);
+                    // 只有真的失敗時才在 console 報錯，不影響使用者當下操作
                 }
             };
 
@@ -465,9 +449,8 @@
                                         <button 
                                             onClick={() => submitStudentData(currentStudent.id, false)}
                                             className="bg-gray-500 text-white px-12 py-6 rounded-full font-bold text-4xl shadow-lg hover:bg-gray-600"
-                                            disabled={isSubmitting}
                                         >
-                                            {isSubmitting ? '處理中...' : '修改答案'}
+                                            修改答案
                                         </button>
                                     </div>
                                 )}
@@ -484,10 +467,9 @@
                                 <div className="mt-12 mb-12 w-full max-w-4xl">
                                     <button 
                                         onClick={() => submitStudentData(currentStudent.id, true)}
-                                        disabled={isSubmitting}
-                                        className={`w-full text-white text-6xl font-black py-10 rounded-[3rem] shadow-2xl border-b-[16px] active:translate-y-2 active:border-b-0 transition-all flex items-center justify-center gap-6 ${isSubmitting ? 'bg-gray-400 border-gray-600 cursor-wait' : 'bg-pink-500 hover:bg-pink-600 border-pink-700'}`}
+                                        className="w-full bg-pink-500 hover:bg-pink-600 text-white text-6xl font-black py-10 rounded-[3rem] shadow-2xl border-b-[16px] active:translate-y-2 active:border-b-0 transition-all flex items-center justify-center gap-6"
                                     >
-                                        {isSubmitting ? '傳送中...' : <span>🚀 確認送出</span>}
+                                        <span>🚀</span> 確認送出
                                     </button>
                                 </div>
                             )}
