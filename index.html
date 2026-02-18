@@ -28,32 +28,34 @@
             align-items: center;
             justify-content: center;
             background-color: #e2e8f0;
-            padding: 0; /* 移除外部留白，讓畫面最大化 */
+            padding: 0;
         }
         .slide-container {
             width: 100%;
-            height: 100%; /* 填滿整個視窗 */
+            height: 100%;
             background: white;
             overflow: hidden;
             position: relative;
             display: flex;
             flex-direction: column;
         }
-        /* 內容區域：使用 Flexbox 撐開空間 */
         .content-area {
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* 讓內容上下撐開 */
+            justify-content: space-evenly;
             align-items: center;
-            padding: 2rem 4rem; /* 增加左右內距 */
+            padding: 1rem 2rem;
             width: 100%;
+            height: 100%;
         }
         .content-scroll-area {
             flex: 1;
             overflow-y: auto; 
             scrollbar-width: none; 
             -ms-overflow-style: none;
+            width: 100%;
+            padding: 2rem;
         }
         .tablet-mode-container {
             width: 100vw;
@@ -61,33 +63,31 @@
             background-color: #fce7f3; 
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            padding: 2rem;
         }
         .animate-bounce-slow {
             animation: bounce 2s infinite;
         }
+        
+        /* 特效與動畫 */
         @keyframes stamp {
-            0% { opacity: 0; transform: scale(3); }
-            100% { opacity: 1; transform: scale(1); }
+            0% { opacity: 0; transform: scale(3) rotate(-10deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); }
         }
         .stamp-animation {
             animation: stamp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
         
-        /* 卡片翻轉特效 */
-        .flip-card {
-            perspective: 1000px;
-        }
+        .flip-card { perspective: 1000px; }
         .flip-card-inner {
             position: relative;
             width: 100%;
             height: 100%;
             text-align: center;
-            transition: transform 0.6s;
+            transition: transform 0.8s;
             transform-style: preserve-3d;
         }
-        .flip-card.flipped .flip-card-inner {
-            transform: rotateY(180deg);
-        }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
         .flip-card-front, .flip-card-back {
             position: absolute;
             width: 100%;
@@ -100,9 +100,7 @@
             align-items: center;
             border-radius: 1.5rem;
         }
-        .flip-card-back {
-            transform: rotateY(180deg);
-        }
+        .flip-card-back { transform: rotateY(180deg); }
     </style>
 </head>
 <body>
@@ -171,7 +169,7 @@
             const [isLocalFile, setIsLocalFile] = useState(false);
             const [loadingError, setLoadingError] = useState("");
             const [connectionStatus, setConnectionStatus] = useState("connecting");
-            const [revealResults, setRevealResults] = useState(false); // 控制是否揭曉成績
+            const [revealResults, setRevealResults] = useState(false);
 
             useEffect(() => {
                 const params = new URLSearchParams(window.location.search);
@@ -184,10 +182,9 @@
             }, []);
 
             useEffect(() => {
+                // 如果是單機模式，不嘗試連線，直接顯示錯誤
                 if (!db) {
                     setConnectionStatus("disconnected");
-                    const savedData = localStorage.getItem('local_students_data');
-                    if (savedData) setStudents(JSON.parse(savedData));
                     return;
                 }
 
@@ -229,7 +226,7 @@
                                       .collection('students_session_v1');
                 
                 const unsubscribe = studentsRef.onSnapshot((snapshot) => {
-                    setConnectionStatus("connected");
+                    setConnectionStatus("connected"); // 收到資料代表連線正常
                     const loadedStudents = [];
                     snapshot.forEach(doc => {
                         loadedStudents.push({ id: doc.id, ...doc.data() });
@@ -276,10 +273,13 @@
             };
 
             const resetAllStudents = async () => {
-                if (!db || !user) return;
+                if (!db || !user) {
+                    alert("未連線，無法重置");
+                    return;
+                }
                 if (!confirm("確定要重置所有學生的狀態嗎？")) return;
                 
-                setRevealResults(false); // 重置時也把揭曉狀態關閉
+                setRevealResults(false);
 
                 try {
                     const batch = db.batch();
@@ -301,6 +301,13 @@
             };
 
             const updateStudentCheck = async (studentId, checkItem, currentValue) => {
+                // 只有連線正常才允許操作，避免資料不同步
+                if (!db || !user || connectionStatus !== "connected") {
+                    alert("尚未連線，請檢查網路！");
+                    return; 
+                }
+
+                // 樂觀更新：先改本地畫面
                 const nextValue = !currentValue;
                 setStudents(prev => prev.map(s => {
                     if (s.id === studentId) {
@@ -309,34 +316,39 @@
                     return s;
                 }));
 
-                if (db && user) {
-                    try {
-                        const studentRef = db.collection('artifacts').doc(appId)
-                                             .collection('public').doc('data')
-                                             .collection('students_session_v1')
-                                             .doc(studentId);
-                        await studentRef.update({ [`checks.${checkItem}`]: nextValue });
-                    } catch (e) { console.error("Sync failed", e); }
+                // 送出到資料庫
+                try {
+                    const studentRef = db.collection('artifacts').doc(appId)
+                                         .collection('public').doc('data')
+                                         .collection('students_session_v1')
+                                         .doc(studentId);
+                    await studentRef.update({ [`checks.${checkItem}`]: nextValue });
+                } catch (e) { 
+                    console.error("Sync failed", e);
+                    alert("資料同步失敗，請重試");
                 }
             };
 
             const submitStudentData = async (studentId, status) => {
+                if (!db || !user || connectionStatus !== "connected") {
+                    alert("尚未連線，無法送出！");
+                    return;
+                }
+
                 setStudents(prev => prev.map(s => {
                     if (s.id === studentId) return { ...s, submitted: status };
                     return s;
                 }));
 
-                if (db && user) {
-                    try {
-                        const studentRef = db.collection('artifacts').doc(appId)
-                                             .collection('public').doc('data')
-                                             .collection('students_session_v1')
-                                             .doc(studentId);
-                        await studentRef.update({ submitted: status });
-                    } catch (e) {
-                        console.error("Sync failed", e);
-                        alert("連線不穩，請重試");
-                    }
+                try {
+                    const studentRef = db.collection('artifacts').doc(appId)
+                                         .collection('public').doc('data')
+                                         .collection('students_session_v1')
+                                         .doc(studentId);
+                    await studentRef.update({ submitted: status });
+                } catch (e) {
+                    console.error("Sync failed", e);
+                    alert("送出失敗，請重試");
                 }
             };
 
@@ -356,18 +368,18 @@
                 return () => window.removeEventListener('keydown', handleKeyDown);
             }, [currentSlide, isTabletMode]);
 
-            // --- Status Indicator Component ---
+            // --- Status Component ---
             const ConnectionStatus = () => {
                 let color = "bg-gray-400";
-                let text = "初始化...";
-                if (connectionStatus === "connected") { color = "bg-green-500"; text = "已連線"; }
+                let text = "連線中...";
+                if (connectionStatus === "connected") { color = "bg-green-500"; text = "連線正常"; }
                 else if (connectionStatus === "disconnected") { color = "bg-red-500"; text = "斷線"; }
                 else if (connectionStatus === "connecting") { color = "bg-yellow-500"; text = "連線中..."; }
 
                 return (
-                    <div className="absolute top-4 left-4 flex items-center gap-2 z-50 bg-white/80 px-3 py-1 rounded-full shadow-sm backdrop-blur-sm border border-gray-200">
-                        <div className={`w-3 h-3 rounded-full ${color} ${connectionStatus === 'connecting' ? 'animate-pulse' : ''}`}></div>
-                        <span className="text-sm font-bold text-gray-600">{text}</span>
+                    <div className="absolute top-6 left-6 flex items-center gap-3 z-50 bg-white/90 px-4 py-2 rounded-full shadow-md border-2 border-gray-100">
+                        <div className={`w-4 h-4 rounded-full ${color} ${connectionStatus === 'connecting' ? 'animate-pulse' : ''}`}></div>
+                        <span className="text-lg font-bold text-gray-700">{text}</span>
                     </div>
                 );
             };
@@ -376,20 +388,24 @@
             if (isTabletMode) {
                 if (selectedStudentId === null) {
                     return (
-                        <div className="tablet-mode-container p-8">
-                            <div className="absolute top-4 right-4"><ConnectionStatus /></div>
-                            {loadingError && <div className="text-center bg-red-100 p-4 text-red-600 font-bold mb-4 rounded-xl border-2 border-red-300 whitespace-pre-line">{loadingError}</div>}
-                            <h1 className="text-6xl font-black text-pink-800 text-center mb-8 mt-8">我是誰？</h1>
+                        <div className="tablet-mode-container">
+                            <ConnectionStatus />
+                            {loadingError && <div className="mt-12 text-center bg-red-100 p-4 text-red-600 font-bold rounded-xl border-2 border-red-300">{loadingError}</div>}
+                            
+                            <h1 className="text-6xl font-black text-pink-800 text-center mb-10 mt-12">我是誰？</h1>
                             
                             <div className="grid grid-cols-2 gap-8 max-w-6xl mx-auto">
                                 {students.map(student => (
                                     <button
                                         key={student.id}
-                                        onClick={() => setSelectedStudentId(student.id)}
-                                        className={`p-12 rounded-[2.5rem] shadow-xl border-b-[16px] active:translate-y-2 active:border-b-0 transition-all ${student.submitted ? 'bg-green-100 border-green-400' : 'bg-white border-pink-300'}`}
+                                        onClick={() => {
+                                            if(connectionStatus !== 'connected') alert("請等待連線成功...");
+                                            else setSelectedStudentId(student.id);
+                                        }}
+                                        className={`p-10 rounded-[2.5rem] shadow-xl border-b-[12px] active:translate-y-2 active:border-b-0 transition-all ${student.submitted ? 'bg-green-100 border-green-400' : 'bg-white border-pink-300'}`}
                                     >
-                                        <div className="text-6xl font-bold text-gray-800">{student.name}</div>
-                                        {student.submitted && <div className="mt-4 text-4xl font-bold text-green-700">已送出 ✅</div>}
+                                        <div className="text-5xl font-bold text-gray-800">{student.name}</div>
+                                        {student.submitted && <div className="mt-4 text-3xl font-bold text-green-700">已送出 ✅</div>}
                                     </button>
                                 ))}
                             </div>
@@ -401,11 +417,11 @@
                     const isSubmitted = currentStudent.submitted;
 
                     return (
-                        <div className="tablet-mode-container p-6 flex flex-col items-center">
-                            <div className="absolute top-4 right-4"><ConnectionStatus /></div>
-                            <div className="w-full max-w-4xl flex justify-between items-center mb-8 mt-4">
-                                <h2 className="text-6xl font-black text-pink-800">{currentStudent.name}的任務</h2>
-                                <button onClick={() => setSelectedStudentId(null)} className="bg-gray-200 text-gray-700 px-8 py-4 rounded-full font-bold text-3xl shadow-md">返回</button>
+                        <div className="tablet-mode-container flex flex-col items-center">
+                            <ConnectionStatus />
+                            <div className="w-full max-w-4xl flex justify-between items-center mb-10 mt-12">
+                                <h2 className="text-6xl font-black text-pink-800">{currentStudent.name}</h2>
+                                <button onClick={() => setSelectedStudentId(null)} className="bg-gray-200 text-gray-700 px-10 py-4 rounded-full font-bold text-3xl shadow-md">返回</button>
                             </div>
                             
                             <div className="flex-1 w-full max-w-4xl space-y-8 relative">
@@ -425,7 +441,7 @@
                                 {[{ key: 'eyes', icon: '👀', text: '我有看紅綠燈' }, { key: 'hand', icon: '✋', text: '我想說話有舉手' }, { key: 'mouth', icon: '🤐', text: '別人說話我安靜' }].map(item => (
                                     <div key={item.key} onClick={() => !isSubmitted && updateStudentCheck(currentStudent.id, item.key, currentStudent.checks[item.key])} className={`flex items-center p-10 bg-white rounded-[2.5rem] shadow-lg cursor-pointer transition-all border-l-[30px] active:scale-95 ${currentStudent.checks[item.key] ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
                                         <div className={`w-28 h-28 rounded-3xl border-[8px] mr-10 flex items-center justify-center transition-colors flex-shrink-0 ${currentStudent.checks[item.key] ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>{currentStudent.checks[item.key] && <span className="text-7xl text-white font-bold">✓</span>}</div>
-                                        <span className="text-8xl mr-10">{item.icon}</span><span className="text-6xl font-bold text-gray-700">{item.text}</span>
+                                        <span className="text-8xl mr-10">{item.icon}</span><span className="text-5xl font-bold text-gray-700">{item.text}</span>
                                     </div>
                                 ))}
                             </div>
@@ -553,14 +569,14 @@
                         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(window.location.href + '?mode=student')}`;
                         return (
                             <div className="content-area bg-pink-50 relative px-8 py-4">
-                                <div className="absolute top-4 left-4"><ConnectionStatus /></div>
+                                <ConnectionStatus />
                                 
                                 <div className="flex justify-center items-center mb-8 relative w-full">
                                     <h2 className="text-6xl font-bold text-pink-800 text-center">全班挑戰賽</h2>
-                                    {/* 揭曉成績按鈕 - 置於標題右側或下方 */}
+                                    {/* 揭曉成績按鈕 */}
                                     <button 
                                         onClick={() => setRevealResults(!revealResults)} 
-                                        className={`absolute right-32 top-0 px-8 py-3 rounded-2xl text-2xl font-bold shadow-lg transition-all transform hover:scale-105 ${revealResults ? 'bg-gray-500 text-white' : 'bg-yellow-400 text-yellow-900 border-4 border-yellow-200'}`}
+                                        className={`absolute right-40 top-0 px-8 py-3 rounded-2xl text-3xl font-bold shadow-lg transition-all transform hover:scale-105 border-4 ${revealResults ? 'bg-gray-500 border-gray-600 text-white' : 'bg-yellow-400 border-yellow-200 text-yellow-900 animate-pulse'}`}
                                     >
                                         {revealResults ? '🙈 隱藏成績' : '👀 揭曉成績'}
                                     </button>
@@ -569,7 +585,7 @@
 
                                 {isOfflineMode && <div className="absolute top-4 left-4 text-red-500 text-xl font-bold bg-white p-3 rounded-xl shadow-lg border-2 border-red-200 z-50">⚠️ 未設定 Firebase</div>}
                                 {loadingError && (
-                                    <div className="absolute top-20 left-4 flex gap-2 z-50">
+                                    <div className="absolute top-20 left-6 flex gap-2 z-50">
                                         <div className="text-red-600 font-bold bg-white p-3 rounded-xl border-2 border-red-300 shadow-xl text-lg whitespace-pre-wrap max-w-md">{loadingError}</div>
                                     </div>
                                 )}
@@ -590,7 +606,7 @@
                                         return (
                                             <div key={student.id} className="flip-card h-72">
                                                 <div className={`flip-card-inner ${revealResults && student.submitted ? 'flipped' : ''}`}>
-                                                    {/* 正面：未揭曉狀態 */}
+                                                    {/* 正面：未揭曉狀態 (已送出顯示綠勾，未送出顯示思考) */}
                                                     <div className={`flip-card-front p-6 shadow-lg border-b-[12px] ${student.submitted ? 'bg-green-100 border-green-400' : 'bg-white border-pink-200'}`}>
                                                         {!student.submitted ? (
                                                             <>
