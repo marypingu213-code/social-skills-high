@@ -110,12 +110,16 @@
             align-items: center;
             justify-content: center;
         }
+        .book-image-wrapper {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(255,255,255,0.2);
+            display: inline-block;
+        }
         .book-image {
             max-height: 85vh;
             max-width: 90vw;
-            box-shadow: 0 0 20px rgba(255,255,255,0.2);
-            border-radius: 4px;
-            object-fit: contain;
+            display: block;
         }
     </style>
 </head>
@@ -183,25 +187,45 @@
             completed: false
         }));
 
-        // --- 智慧圖片讀取器 (解決大小寫與副檔名問題) ---
-        const SmartImage = ({ baseName, className, fallback }) => {
+        // --- 智慧圖片讀取器 (解決大小寫與副檔名問題，並加入放大鏡功能) ---
+        const SmartImage = ({ baseName, className, fallback, zoomable = false }) => {
             const [extIndex, setExtIndex] = useState(0);
             const [failed, setFailed] = useState(false);
+            // 放大鏡狀態
+            const [isZoomed, setIsZoomed] = useState(false);
+            const [origin, setOrigin] = useState("50% 50%");
             // 自動嘗試各種可能的副檔名
             const exts = ['.jpg', '.JPG', '.png', '.PNG', '.jpeg', '.JPEG'];
             
             useEffect(() => {
                 setExtIndex(0);
                 setFailed(false);
+                setIsZoomed(false);
+                setOrigin("50% 50%");
             }, [baseName]);
+
+            const handleMouseMove = (e) => {
+                if (!zoomable) return;
+                const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+                const x = ((e.clientX - left) / width) * 100;
+                const y = ((e.clientY - top) / height) * 100;
+                setOrigin(`${x}% ${y}%`);
+            };
 
             if (failed) return fallback;
 
-            return (
+            const imgElement = (
                 <img 
                     src={`image/${baseName}${exts[extIndex]}`}
                     className={className}
                     alt={baseName}
+                    style={zoomable ? {
+                        transform: isZoomed ? 'scale(2.5)' : 'scale(1)',
+                        transformOrigin: origin,
+                        transition: 'transform 0.2s ease-out',
+                        willChange: 'transform',
+                        pointerEvents: 'none' // 讓滑鼠事件只在 wrapper 上觸發，避免計算錯誤
+                    } : {}}
                     onError={() => {
                         if (extIndex < exts.length - 1) {
                             setExtIndex(prev => prev + 1);
@@ -210,6 +234,27 @@
                         }
                     }}
                 />
+            );
+
+            // 只有指定 zoomable 的繪本閱讀器才加上外框特效
+            if (!zoomable) {
+                return imgElement;
+            }
+
+            return (
+                <div 
+                    className="book-image-wrapper"
+                    onMouseEnter={() => setIsZoomed(true)}
+                    onMouseLeave={() => {
+                        setIsZoomed(false);
+                        setOrigin("50% 50%");
+                    }}
+                    onMouseMove={handleMouseMove}
+                    onClick={() => setIsZoomed(!isZoomed)}
+                    style={{ cursor: isZoomed ? 'zoom-out' : 'zoom-in' }}
+                >
+                    {imgElement}
+                </div>
             );
         };
 
@@ -482,6 +527,7 @@
                                 <SmartImage 
                                     baseName={baseName}
                                     className="book-image"
+                                    zoomable={true}
                                     fallback={
                                         <div className="text-white text-xl p-10 border border-white text-center bg-black/50 rounded-lg">
                                             圖片讀取失敗<br/>請確認檔案位置: image/{baseName}.jpg<br/>
