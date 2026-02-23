@@ -457,7 +457,8 @@
             // 繪本閱讀器
             const BookReader = () => {
                 if (!showBook) return null;
-                const baseName = `1-1(${bookPage})`;
+                // 💡 修正：加上了空白鍵，變成 1-1 (1)
+                const baseName = `1-1 (${bookPage})`;
 
                 return (
                     <div className="book-reader-overlay">
@@ -628,12 +629,13 @@
                                     title="點擊閱讀繪本"
                                 >
                                     <div className="relative">
+                                        {/* 💡 修正：加上了空白鍵，變成 1-1 (1) */}
                                         <SmartImage 
-                                            baseName="1-1(1)"
+                                            baseName="1-1 (1)"
                                             className="w-[18rem] h-[24rem] object-cover rounded-2xl mb-2 shadow-inner bg-gray-100"
                                             fallback={
                                                 <div className="w-[18rem] h-[24rem] bg-gray-200 flex flex-col items-center justify-center rounded-2xl mb-2 text-gray-400 text-center p-4">
-                                                    <div className="text-center"><div className="text-5xl mb-2">📚</div><div className="text-lg font-bold">圖片讀取失敗<br/>1-1(1)</div></div>
+                                                    <div className="text-center"><div className="text-5xl mb-2">📚</div><div className="text-lg font-bold">圖片讀取失敗<br/>1-1 (1)</div></div>
                                                 </div>
                                             }
                                         />
