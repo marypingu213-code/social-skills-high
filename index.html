@@ -116,8 +116,8 @@
             display: inline-block;
         }
         .book-image {
-            max-height: 85vh;
-            max-width: 90vw;
+            max-height: 98vh; /* 調整：把圖片高度放寬到 98% 視窗高度 */
+            max-width: 98vw;  /* 調整：把圖片寬度放寬到 98% 視窗寬度 */
             display: block;
         }
     </style>
@@ -286,7 +286,7 @@
             );
         };
 
-        // --- 時鐘組件 ---
+        // --- 時鐘組件 (已移除絕對定位，交由父層統一排版) ---
         const Clock = () => {
             const [time, setTime] = useState(new Date());
 
@@ -296,7 +296,7 @@
             }, []);
 
             return (
-                <div className="absolute bottom-4 left-4 bg-white/90 px-4 py-2 rounded-xl text-3xl font-mono text-gray-700 font-bold z-40 border-2 border-gray-300 shadow-md">
+                <div className="bg-white/90 px-4 py-2 rounded-xl text-3xl font-mono text-gray-700 font-bold border-2 border-gray-300 shadow-md">
                     {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
             );
@@ -304,6 +304,9 @@
 
         const App = () => {
             const [currentSlide, setCurrentSlide] = useState(0);
+            // 新增：紀錄跳躍前的投影片頁碼
+            const [savedSlide, setSavedSlide] = useState(null);
+            
             const [lightStatus, setLightStatus] = useState('red');
             const [user, setUser] = useState(null);
             const [students, setStudents] = useState(MOCK_STUDENTS);
@@ -522,25 +525,61 @@
                 );
             };
 
+            // 繪本閱讀器
             const BookReader = () => {
                 if (!showBook) return null;
                 const baseName = `1-1 (${bookPage})`;
 
                 return (
                     <div className="book-reader-overlay">
-                        <button onClick={() => setShowBook(false)} className="absolute top-6 right-6 text-white text-4xl font-bold bg-gray-800/50 rounded-full w-12 h-12 flex items-center justify-center hover:bg-red-600 transition-colors z-50">×</button>
-                        <div className="flex items-center gap-4 w-full justify-center px-4">
-                            <button onClick={(e) => { e.stopPropagation(); setBookPage(p => Math.max(1, p - 1)); }} disabled={bookPage === 1} className="text-white text-4xl bg-gray-800/50 rounded-full w-16 h-16 flex items-center justify-center hover:bg-white/20 disabled:opacity-30 transition-all">‹</button>
-                            <div className="relative flex flex-col items-center">
-                                <SmartImage baseName={baseName} className="book-image" zoomable={true} fallback={<div className="text-white text-xl p-10 border border-white text-center bg-black/50 rounded-lg">圖片讀取失敗<br/>請確認檔案位置: image/{baseName}.jpg<br/></div>} />
-                                <div className="text-white text-xl font-bold mt-2 bg-black/50 px-4 py-1 rounded-full">{bookPage} / {TOTAL_PAGES}</div>
+                        {/* 關閉按鈕：移到最頂層並加大 */}
+                        <button 
+                            onClick={() => setShowBook(false)}
+                            className="absolute top-4 right-6 text-white text-5xl font-bold bg-gray-800/60 rounded-full w-14 h-14 flex items-center justify-center hover:bg-red-600 transition-colors z-[10000]"
+                        >
+                            ×
+                        </button>
+                        
+                        {/* 左翻按鈕：改為絕對定位，懸浮於左側 */}
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setBookPage(p => Math.max(1, p - 1)); }}
+                            disabled={bookPage === 1}
+                            className="absolute left-6 top-1/2 transform -translate-y-1/2 text-white text-6xl bg-gray-800/70 rounded-full w-20 h-20 flex items-center justify-center hover:bg-white/40 disabled:opacity-30 transition-all z-[10000]"
+                        >
+                            ‹
+                        </button>
+                        
+                        {/* 圖片顯示區：佔滿剩餘所有空間 */}
+                        <div className="relative flex flex-col items-center justify-center w-full h-full p-2">
+                            <SmartImage 
+                                baseName={baseName}
+                                className="book-image rounded-xl"
+                                zoomable={true}
+                                fallback={
+                                    <div className="text-white text-2xl p-16 border-2 border-white text-center bg-black/60 rounded-xl">
+                                        圖片讀取失敗<br/>請確認檔案位置: image/{baseName}.jpg<br/>
+                                    </div>
+                                }
+                            />
+                            {/* 頁碼：改為絕對定位，懸浮於正下方 */}
+                            <div className="absolute bottom-6 text-white text-2xl font-bold bg-black/70 px-6 py-2 rounded-full pointer-events-none drop-shadow-md z-[10000]">
+                                {bookPage} / {TOTAL_PAGES}
                             </div>
-                            <button onClick={(e) => { e.stopPropagation(); setBookPage(p => Math.min(TOTAL_PAGES, p + 1)); }} disabled={bookPage === TOTAL_PAGES} className="text-white text-4xl bg-gray-800/50 rounded-full w-16 h-16 flex items-center justify-center hover:bg-white/20 disabled:opacity-30 transition-all">›</button>
                         </div>
+
+                        {/* 右翻按鈕：改為絕對定位，懸浮於右側 */}
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setBookPage(p => Math.min(TOTAL_PAGES, p + 1)); }}
+                            disabled={bookPage === TOTAL_PAGES}
+                            className="absolute right-6 top-1/2 transform -translate-y-1/2 text-white text-6xl bg-gray-800/70 rounded-full w-20 h-20 flex items-center justify-center hover:bg-white/40 disabled:opacity-30 transition-all z-[10000]"
+                        >
+                            ›
+                        </button>
                     </div>
                 );
             };
 
+            // --- Views ---
             if (isTabletMode) {
                 if (selectedStudentId === null) {
                     return (
@@ -886,7 +925,28 @@
                         <SlideContent />
                         {!isTabletMode && (
                             <>
-                                <Clock />
+                                {/* 左下角整合區塊：時鐘 + 大富翁直達按鈕 */}
+                                <div className="absolute bottom-4 left-4 flex items-center gap-4 z-[10000]">
+                                    <Clock />
+                                    {currentSlide !== 7 ? (
+                                        <button 
+                                            onClick={() => { setSavedSlide(currentSlide); setCurrentSlide(7); }} 
+                                            className="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 px-5 py-2 rounded-xl shadow-md font-black text-2xl flex items-center gap-2 transition-transform active:scale-95 border-2 border-yellow-500"
+                                        >
+                                            🎲 獎勵：大富翁
+                                        </button>
+                                    ) : (
+                                        savedSlide !== null && (
+                                            <button 
+                                                onClick={() => { setCurrentSlide(savedSlide); setSavedSlide(null); }} 
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-5 py-2 rounded-xl shadow-md font-black text-2xl flex items-center gap-2 transition-transform active:scale-95 border-2 border-gray-500"
+                                            >
+                                                🔙 返回故事
+                                            </button>
+                                        )
+                                    )}
+                                </div>
+                                
                                 <button onClick={prevSlide} disabled={currentSlide === 0} className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/50 hover:bg-white text-gray-800 p-4 rounded-full shadow-lg disabled:opacity-0 transition-all backdrop-blur-sm z-10"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg></button>
                                 <button onClick={nextSlide} disabled={currentSlide === totalSlides - 1} className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/50 hover:bg-white text-gray-800 p-4 rounded-full shadow-lg disabled:opacity-0 transition-all backdrop-blur-sm z-10"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg></button>
                                 <div className="absolute bottom-4 right-20 bg-black/10 px-4 py-1 rounded-full text-gray-600 font-bold text-xl backdrop-blur-sm">{currentSlide + 1} / {totalSlides}</div>
