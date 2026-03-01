@@ -755,9 +755,10 @@
                     );
                     case 7: return ( // 新增：說話遊戲大富翁
                         <div className="content-area bg-green-50">
-                            <h2 className="text-5xl font-bold text-green-800 mb-4">說話遊戲大富翁</h2>
+                            <h2 className="text-5xl font-bold text-green-800 mb-6">說話遊戲大富翁</h2>
                             
-                            <div className="w-full max-w-[800px] h-[550px] grid gap-3 p-4 bg-green-100 rounded-[2rem] border-[10px] border-green-300 shadow-2xl relative"
+                            {/* 💡 調整：將 max-w 放寬至 1200px，高度調至 650px，並加大 padding 與 gap */}
+                            <div className="w-full max-w-[1200px] h-[650px] grid gap-4 p-6 bg-green-100 rounded-[2rem] border-[10px] border-green-300 shadow-2xl relative"
                                  style={{ gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(4, 1fr)' }}>
                                 
                                 {boardCells.map(cell => {
@@ -767,13 +768,14 @@
                                     if(cell.type==='chance') cellColor = 'bg-orange-50 border-orange-300';
                                     if(cell.type==='destiny') cellColor = 'bg-purple-50 border-purple-300';
                                     if(cell.type==='start') cellColor = 'bg-blue-100 border-blue-400';
-                                    if(cell.type==='reward') cellColor = 'bg-pink-50 border-pink-300'; // 為獎賞格子新增粉紅色系
+                                    if(cell.type==='reward') cellColor = 'bg-pink-50 border-pink-300'; 
 
                                     return (
                                         <div key={cell.id} style={{...area}} className={`border-4 rounded-2xl flex flex-col items-center justify-center p-2 relative shadow-sm transition-all duration-300 ${cellColor} ${isPlayerHere ? 'ring-4 ring-pink-400 scale-105 z-10' : ''}`}>
-                                            <span className="text-4xl">{cell.icon}</span>
-                                            <span className="text-lg font-bold text-gray-700 mt-1 text-center leading-tight">{cell.text}</span>
-                                            {isPlayerHere && <div className="absolute -top-6 -right-6 text-[3.5rem] animate-bounce drop-shadow-lg z-20">🦝</div>}
+                                            {/* 💡 調整：加大格子內的圖示與文字尺寸 */}
+                                            <span className="text-5xl">{cell.icon}</span>
+                                            <span className="text-xl font-bold text-gray-700 mt-2 text-center leading-tight">{cell.text}</span>
+                                            {isPlayerHere && <div className="absolute -top-8 -right-8 text-[4.5rem] animate-bounce drop-shadow-lg z-20">🦝</div>}
                                         </div>
                                     )
                                 })}
@@ -782,17 +784,19 @@
                                 <div className="flex flex-col items-center justify-center bg-white/90 rounded-2xl shadow-inner border-4 border-dashed border-green-300 relative overflow-hidden" style={{ gridColumn: '2 / 4', gridRow: '2 / 4' }}>
                                     
                                     {activeCard ? (
-                                        <div className="absolute inset-0 bg-white flex flex-col items-center justify-center p-4 text-center stamp-animation z-30">
-                                            <h3 className={`text-4xl font-black mb-3 ${activeCard.type === '機會' ? 'text-orange-500' : activeCard.type === '命運' ? 'text-purple-600' : activeCard.type === '獎賞' ? 'text-pink-600' : 'text-blue-600'}`}>{activeCard.type}卡</h3>
-                                            <p className="text-2xl font-bold text-gray-700 leading-snug">{activeCard.text}</p>
-                                            <button onClick={() => setActiveCard(null)} className="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-xl text-xl font-bold shadow transition-colors">確認</button>
+                                        <div className="absolute inset-0 bg-white flex flex-col items-center justify-center p-6 text-center stamp-animation z-30">
+                                            {/* 💡 調整：加大卡片標題、內文與按鈕 */}
+                                            <h3 className={`text-5xl font-black mb-4 ${activeCard.type === '機會' ? 'text-orange-500' : activeCard.type === '命運' ? 'text-purple-600' : activeCard.type === '獎賞' ? 'text-pink-600' : 'text-blue-600'}`}>{activeCard.type}卡</h3>
+                                            <p className="text-3xl font-bold text-gray-700 leading-snug px-4">{activeCard.text}</p>
+                                            <button onClick={() => setActiveCard(null)} className="mt-8 bg-gray-200 hover:bg-gray-300 text-gray-800 px-8 py-3 rounded-2xl text-2xl font-bold shadow transition-colors">確認</button>
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center">
-                                            <div className={`text-[6rem] mb-2 font-black text-blue-600 drop-shadow-md transition-transform ${isRolling ? 'animate-spin' : ''}`}>
+                                            {/* 💡 調整：加大骰子與擲骰子按鈕 */}
+                                            <div className={`text-[8rem] mb-4 font-black text-blue-600 drop-shadow-md transition-transform ${isRolling ? 'animate-spin' : ''}`}>
                                                 {isRolling ? "🎲" : diceNumber}
                                             </div>
-                                            <button onClick={rollDice} disabled={isRolling} className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full font-black text-2xl shadow-lg active:scale-95 transition-transform disabled:opacity-50 flex items-center gap-2">
+                                            <button onClick={rollDice} disabled={isRolling} className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-full font-black text-3xl shadow-lg active:scale-95 transition-transform disabled:opacity-50 flex items-center gap-2">
                                                 <span>🎲</span> {isRolling ? '擲骰子中...' : '擲骰子'}
                                             </button>
                                         </div>
