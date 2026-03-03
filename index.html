@@ -69,6 +69,20 @@
         .stamp-animation {
             animation: stamp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
+
+        /* 💡 新增：強烈的搖晃動畫，專門用來呈現「衝擊」 */
+        @keyframes wobble {
+            0%, 100% { transform: translateX(0%) rotate(0deg); }
+            15% { transform: translateX(-15px) rotate(-8deg) scale(1.1); }
+            30% { transform: translateX(10px) rotate(6deg) scale(1.1); }
+            45% { transform: translateX(-10px) rotate(-6deg) scale(1.1); }
+            60% { transform: translateX(5px) rotate(4deg) scale(1.1); }
+            75% { transform: translateX(-2px) rotate(-2deg) scale(1.1); }
+        }
+        .animate-wobble {
+            display: inline-block;
+            animation: wobble 0.8s ease-in-out infinite;
+        }
         
         /* 翻牌特效 */
         .flip-card { perspective: 1000px; }
@@ -307,6 +321,14 @@
             // 新增：紀錄跳躍前的投影片頁碼
             const [savedSlide, setSavedSlide] = useState(null);
             
+            // 💡 新增：抽籤狀態與特效控制
+            const [pickedStudent1, setPickedStudent1] = useState(null);
+            const [pickedStudent2, setPickedStudent2] = useState(null);
+            const [isRolling1, setIsRolling1] = useState(false);
+            const [rollingName1, setRollingName1] = useState("");
+            const [isRolling2, setIsRolling2] = useState(false);
+            const [rollingName2, setRollingName2] = useState("");
+            
             const [lightStatus, setLightStatus] = useState('red');
             const [user, setUser] = useState(null);
             const [students, setStudents] = useState(MOCK_STUDENTS);
@@ -330,7 +352,53 @@
             const [isRolling, setIsRolling] = useState(false);
             const [activeCard, setActiveCard] = useState(null);
 
-            const totalSlides = 10; // 新增大富翁頁面，總頁數變 10
+            // 💡 調整：新增兩頁前情提要，總頁數變 12
+            const totalSlides = 12; 
+
+            // 💡 更新：隨機抽籤邏輯 (加入輪播動畫與不重複機制)
+            const pickRandom1 = () => {
+                if (students.length === 0 || isRolling1) return;
+                setIsRolling1(true);
+                setPickedStudent1(null);
+                
+                let counter = 0;
+                const names = students.map(s => s.name);
+                
+                const interval = setInterval(() => {
+                    setRollingName1(names[Math.floor(Math.random() * names.length)]);
+                    counter++;
+                    if (counter > 15) { // 轉動 15 次後停下
+                        clearInterval(interval);
+                        const finalName = names[Math.floor(Math.random() * names.length)];
+                        setPickedStudent1(finalName);
+                        setRollingName1("");
+                        setIsRolling1(false);
+                    }
+                }, 80); // 每 80 毫秒跳換一次名字
+            };
+
+            const pickRandom2 = () => {
+                if (students.length === 0 || isRolling2) return;
+                setIsRolling2(true);
+                setPickedStudent2(null);
+                
+                let counter = 0;
+                // 💡 核心：過濾掉在第一題已經被抽到的學生
+                let availableNames = students.map(s => s.name).filter(name => name !== pickedStudent1);
+                if (availableNames.length === 0) availableNames = students.map(s => s.name); // 防呆機制
+                
+                const interval = setInterval(() => {
+                    setRollingName2(availableNames[Math.floor(Math.random() * availableNames.length)]);
+                    counter++;
+                    if (counter > 15) {
+                        clearInterval(interval);
+                        const finalName = availableNames[Math.floor(Math.random() * availableNames.length)];
+                        setPickedStudent2(finalName);
+                        setRollingName2("");
+                        setIsRolling2(false);
+                    }
+                }, 80);
+            };
 
             useEffect(() => {
                 const params = new URLSearchParams(window.location.search);
@@ -355,11 +423,21 @@
                     try {
                         setLoadingError("");
                         setConnectionStatus("connecting");
-                        await auth.signInAnonymously();
+                        if (TEACHER_FIREBASE_CONFIG) {
+                            await auth.signInAnonymously();
+                        } else {
+                            await auth.signInAnonymously();
+                        }
                     } catch (e) {
                         console.error("Auth error:", e);
                         setConnectionStatus("disconnected");
-                        setLoadingError(`連線失敗: ${e.code}`);
+                        if (e.code === 'auth/operation-not-allowed') {
+                            setLoadingError("請去 Firebase Console 開啟「匿名登入」");
+                        } else if (e.code === 'auth/unauthorized-domain') {
+                            setLoadingError("網域未授權：請到 Firebase 新增 github.io");
+                        } else {
+                            setLoadingError(`連線失敗: ${e.code}`);
+                        }
                     }
                 };
                 initAuth();
@@ -454,7 +532,10 @@
                 finally { setIsSubmitting(false); }
             };
 
-            const saveToLocal = () => localStorage.setItem('local_students_data_v2', JSON.stringify(students));
+            const saveToLocal = () => {
+                localStorage.setItem('local_students_data_v2', JSON.stringify(students));
+            };
+
             const calculateScore = (checks) => Object.values(checks || {}).filter(Boolean).length;
 
             const nextSlide = () => { if (currentSlide < totalSlides - 1) setCurrentSlide(currentSlide + 1); };
@@ -525,7 +606,6 @@
                 );
             };
 
-            // 繪本閱讀器
             const BookReader = () => {
                 if (!showBook) return null;
                 const baseName = `1-1 (${bookPage})`;
@@ -579,7 +659,6 @@
                 );
             };
 
-            // --- Views ---
             if (isTabletMode) {
                 if (selectedStudentId === null) {
                     return (
@@ -669,7 +748,61 @@
                             </div>
                         </div>
                     );
-                    case 3: return (
+                    case 3: return ( // 前情提要一
+                        <div className="content-area bg-yellow-50">
+                            <div className="bg-white p-12 rounded-3xl shadow-2xl border-[8px] border-yellow-300 max-w-4xl w-full text-center relative mt-8">
+                                <span className="absolute -top-16 -left-10 text-[7rem] transform -rotate-12">🤔</span>
+                                <h2 className="text-5xl font-black text-gray-800 mb-10 leading-normal">
+                                    前情提要一：<br/>
+                                    <span className="text-blue-600 text-6xl drop-shadow-md">你記得這本書的作者是誰嗎？</span>
+                                </h2>
+                                <div className="bg-blue-50 p-8 rounded-2xl border-4 border-blue-200 min-h-[160px] flex flex-col items-center justify-center">
+                                    {isRolling1 ? (
+                                        <div className="text-6xl font-black text-gray-400 animate-pulse">
+                                            {rollingName1}
+                                        </div>
+                                    ) : pickedStudent1 ? (
+                                        <div className="text-6xl font-black text-pink-600 animate-bounce-slow">
+                                            🎉 {pickedStudent1} 🎉
+                                        </div>
+                                    ) : (
+                                        <button onClick={pickRandom1} className="bg-blue-500 hover:bg-blue-600 text-white px-10 py-5 rounded-full font-black text-3xl shadow-lg active:scale-95 transition-transform flex items-center gap-3">
+                                            <span>🎲</span> 今天的幸運兒是誰呢?
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                    case 4: return ( // 前情提要二
+                        <div className="content-area bg-red-50">
+                            <div className="bg-white p-12 rounded-3xl shadow-2xl border-[8px] border-red-300 max-w-4xl w-full text-center relative mt-8">
+                                <span className="absolute -top-16 -left-10 text-[7rem] transform rotate-12">😲</span>
+                                <h2 className="text-5xl font-black text-gray-800 mb-10 leading-normal">
+                                    前情提要二：<br/>
+                                    浣熊面臨到的
+                                    <span className="text-red-600 text-[8rem] font-black animate-wobble mx-4 drop-shadow-xl align-middle inline-block">衝擊</span>
+                                    是？
+                                </h2>
+                                <div className="bg-red-50 p-8 rounded-2xl border-4 border-red-200 min-h-[160px] flex flex-col items-center justify-center">
+                                    {isRolling2 ? (
+                                        <div className="text-6xl font-black text-gray-400 animate-pulse">
+                                            {rollingName2}
+                                        </div>
+                                    ) : pickedStudent2 ? (
+                                        <div className="text-6xl font-black text-purple-600 animate-bounce-slow">
+                                            🎉 {pickedStudent2} 🎉
+                                        </div>
+                                    ) : (
+                                        <button onClick={pickRandom2} className="bg-red-500 hover:bg-red-600 text-white px-10 py-5 rounded-full font-black text-3xl shadow-lg active:scale-95 transition-transform flex items-center gap-3">
+                                            <span>🎲</span> 今天的幸運兒是誰呢?
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                    case 5: return ( // 原 case 3
                         <div className="content-area bg-indigo-50">
                             <h2 className="text-5xl font-bold text-indigo-900 mb-4">現在是什麼燈？</h2>
                             <div className="flex items-center justify-center gap-8 w-full flex-1">
@@ -703,7 +836,7 @@
                             </div>
                         </div>
                     );
-                    case 4: return (
+                    case 6: return ( // 原 case 4
                         <div className="content-area bg-orange-50">
                             <h2 className="text-6xl font-bold text-orange-800 mb-8 text-center">我好想說話，怎麼辦？</h2>
                             <div className="flex-1 flex flex-col justify-center items-center gap-10 w-full">
@@ -718,7 +851,7 @@
                             </div>
                         </div>
                     );
-                    case 5: return (
+                    case 7: return ( // 原 case 5
                         <div className="content-area bg-white">
                             <h2 className="text-5xl font-bold text-center text-purple-800 mb-6">幫幫小兔子！</h2>
                             <div className="flex-1 flex items-center justify-center space-x-12 w-full">
@@ -738,7 +871,7 @@
                             </div>
                         </div>
                     );
-                    case 6: return (
+                    case 8: return ( // 原 case 6
                         <div className="content-area bg-cyan-50">
                             <h2 className="text-5xl font-bold text-cyan-800 mb-6">這是誰的發言時間？</h2>
                             <div className="flex-1 flex flex-col justify-center items-center w-full">
@@ -753,7 +886,7 @@
                             </div>
                         </div>
                     );
-                    case 7: return ( // 新增：說話遊戲大富翁
+                    case 9: return ( // 原 case 7 (說話遊戲大富翁)
                         <div className="content-area bg-green-50">
                             <h2 className="text-5xl font-bold text-green-800 mb-6">說話遊戲大富翁</h2>
                             
@@ -806,7 +939,7 @@
                             </div>
                         </div>
                     );
-                    case 8: 
+                    case 10: // 原 case 8 (全班挑戰賽)
                         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href + '?mode=student')}`;
                         
                         const eyesCount = students.filter(s => s.checks.eyes).length;
@@ -906,7 +1039,7 @@
                                 )}
                             </div>
                         );
-                    case 9: return (
+                    case 11: return ( // 原 case 9 (任務成功)
                         <div className="content-area bg-yellow-100">
                             <div className="text-[10rem] animate-pulse drop-shadow-2xl">🌟</div>
                             <h2 className="text-7xl font-black text-yellow-600 tracking-wider mb-8">任務成功！</h2>
@@ -932,9 +1065,10 @@
                                 {/* 左下角整合區塊：時鐘 + 大富翁直達按鈕 */}
                                 <div className="absolute bottom-4 left-4 flex items-center gap-4 z-[10000]">
                                     <Clock />
-                                    {currentSlide !== 7 ? (
+                                    {/* 💡 調整：大富翁的捷徑索引更新為 9 */}
+                                    {currentSlide !== 9 ? (
                                         <button 
-                                            onClick={() => { setSavedSlide(currentSlide); setCurrentSlide(7); }} 
+                                            onClick={() => { setSavedSlide(currentSlide); setCurrentSlide(9); }} 
                                             className="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 px-5 py-2 rounded-xl shadow-md font-black text-2xl flex items-center gap-2 transition-transform active:scale-95 border-2 border-yellow-500"
                                         >
                                             🎲 獎勵：大富翁
@@ -956,7 +1090,8 @@
                                 <div className="absolute bottom-4 right-20 bg-black/10 px-4 py-1 rounded-full text-gray-600 font-bold text-xl backdrop-blur-sm">{currentSlide + 1} / {totalSlides}</div>
                             </>
                         )}
-                        {!isTabletMode && currentSlide === 8 && isLocalFile && (
+                        {/* 💡 調整：學生平板測試按鈕的頁面索引改為 10 */}
+                        {!isTabletMode && currentSlide === 10 && isLocalFile && (
                             <button onClick={() => window.open(window.location.href + '?mode=student', '_blank')} className="absolute bottom-4 left-4 bg-pink-600 text-white font-bold p-2 rounded-lg shadow-lg hover:bg-pink-700 z-50 text-sm">開啟學生平板視窗 (測試用)</button>
                         )}
                     </div>
