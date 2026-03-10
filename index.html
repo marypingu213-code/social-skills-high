@@ -918,7 +918,12 @@
                         </div>
                     );
                     case 13: // 原 case 8 (全班挑戰賽)
-                        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href + '?mode=student')}`;
+                        // 💡 修改：使用 URL 物件安全處理網址，確保 ?mode=student 不會被 # 吃掉
+                        const studentUrlObj = new URL(window.location.href);
+                        studentUrlObj.searchParams.set('mode', 'student');
+                        studentUrlObj.hash = ''; // 清除可能的 hash 避免干擾
+                        const studentUrl = studentUrlObj.toString();
+                        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(studentUrl)}`;
                         
                         const eyesCount = students.filter(s => s.checks.eyes).length;
                         const handCount = students.filter(s => s.checks.hand).length;
@@ -1072,9 +1077,14 @@
                                 <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/10 px-4 py-1 rounded-full text-gray-600 font-bold text-xl backdrop-blur-sm z-[10000]">{currentSlide + 1} / {totalSlides}</div>
                             </>
                         )}
-                        {/* 💡 調整：學生平板測試按鈕的頁面索引改為 13 */}
+                        {/* 💡 調整：學生平板測試按鈕也改用安全網址 */}
                         {!isTabletMode && currentSlide === 13 && isLocalFile && (
-                            <button onClick={() => window.open(window.location.href + '?mode=student', '_blank')} className="absolute bottom-4 left-4 bg-pink-600 text-white font-bold p-2 rounded-lg shadow-lg hover:bg-pink-700 z-50 text-sm">開啟學生平板視窗 (測試用)</button>
+                            <button onClick={() => {
+                                const url = new URL(window.location.href);
+                                url.searchParams.set('mode', 'student');
+                                url.hash = '';
+                                window.open(url.toString(), '_blank');
+                            }} className="absolute bottom-4 left-4 bg-pink-600 text-white font-bold p-2 rounded-lg shadow-lg hover:bg-pink-700 z-50 text-sm">開啟學生平板視窗 (測試用)</button>
                         )}
                     </div>
                 </div>
