@@ -969,21 +969,10 @@
                                         const icon2 = evalItems[1].icon;
                                         const icon3 = evalItems[2].icon;
                                         
-                                        const secretMissions = {
-                                            '書愷': '上課拿出課本',
-                                            '宇軒': '聽老師的話',
-                                            '楷元': '聯絡簿給老師簽名',
-                                            '睿穎': '不可以摸同學'
-                                        };
-                                        const secretTask = secretMissions[student.name];
+                                        // 💡 修改：移除外側的秘密任務文字定義與徽章顯示，讓全班計分板保持乾淨
                                         
                                         return (
                                             <div key={student.id} className="flip-card h-48 relative">
-                                                {secretTask && (
-                                                    <div className="absolute -top-4 -right-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-black px-3 py-1.5 rounded-full shadow-xl transform rotate-3 border-[2px] border-white z-20 whitespace-nowrap">
-                                                        ㊙️ {secretTask}
-                                                    </div>
-                                                )}
                                                 <div className={`flip-card-inner ${revealResults && student.submitted ? 'flipped' : ''}`}>
                                                     <div className={`flip-card-front p-4 shadow-lg border-b-8 ${student.submitted ? 'bg-green-100 border-green-400' : 'bg-white border-pink-200'}`}>
                                                         {!student.submitted ? (
