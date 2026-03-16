@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>社會技巧課：遇到選擇時你會怎麼做</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            overflow: hidden; 
+        }
+        body.student-mode-active {
+            background-color: #fce7f3 !important; 
+            overflow-y: auto !important;
+        }
+
+        .slide-wrapper {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e2e8f0;
+            padding: 0;
+        }
+        .slide-container {
+            width: 100%;
+            height: 100%;
+            background: white;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        .tablet-mode-container {
+            min-height: 100vh;
+            width: 100vw;
+            background-color: #fce7f3; 
+            padding: 1rem;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .animate-bounce-slow {
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes popupCard {
+            0% { opacity: 0; transform: scale(0.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .popup-card-animation {
+            animation: popupCard 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes wobble {
+            0%, 100% { transform: translateX(0%) rotate(0deg); }
+            15% { transform: translateX(-15px) rotate(-8deg) scale(1.1); }
+            30% { transform: translateX(10px) rotate(6deg) scale(1.1); }
+            45% { transform: translateX(-10px) rotate(-6deg) scale(1.1); }
+            60% { transform: translateX(5px) rotate(4deg) scale(1.1); }
+            75% { transform: translateX(-2px) rotate(-2deg) scale(1.1); }
+        }
+        .animate-wobble {
+            display: inline-block;
+            animation: wobble 0.8s ease-in-out infinite;
+        }
+
+        /* 💡 新增：加分板滑入動畫 */
+        @keyframes slideInLeft {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+        .animate-slide-in-left {
+            animation: slideInLeft 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        
+        .flip-card { perspective: 1000px; }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+        }
+        .flip-card-inner.flipped { transform: rotateY(180deg); }
+        
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 1rem;
+        }
+        .flip-card-back { transform: rotateY(180deg); }
+
+        .book-reader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .book-image-wrapper {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(255,255,255,0.2);
+            display: inline-block;
+        }
+        .book-image {
+            max-height: 98vh; 
+            max-width: 98vw;  
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const TEACHER_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDhwu9YAyfMxZtC5BhGKzmVyxWdQ4qW3MM",
+            authDomain: "social-89bcb.firebaseapp.com",
+            projectId: "social-89bcb",
+            storageBucket: "social-89bcb.firebasestorage.app",
+            messagingSenderId: "638955050705",
+            appId: "1:638955050705:web:aec1eb12e9142c9a7ad7f0",
+            measurementId: "G-CG8V25F05H"
+        };
+
+        const getFirebaseConfig = () => {
+            if (TEACHER_FIREBASE_CONFIG) return TEACHER_FIREBASE_CONFIG;
+            try {
+                if (typeof __firebase_config !== 'undefined') return JSON.parse(__firebase_config);
+            } catch (e) { console.warn("No preview config found"); }
+            return null;
+        };
+
+        const firebaseConfig = getFirebaseConfig();
+        let db = null;
+        let auth = null;
+        const COLLECTION_NAME = 'classroom_v4_sync'; 
+
+        if (firebaseConfig && firebase.apps.length === 0) {
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                auth = firebase.auth();
+            } catch(e) { console.error("Firebase init error", e); }
+        }
+
+        const STUDENT_DATA = [
+            { id: 's1', name: '瑀安' }, { id: 's2', name: '承熙' },
+            { id: 's3', name: '書愷' }, { id: 's4', name: '岷翰' },
+            { id: 's5', name: '睿穎' }, { id: 's6', name: '宇軒' },
+            { id: 's7', name: '楷元' }, { id: 's8', name: '守恩' }
+        ];
+
+        // 💡 修正：為學生模型加入 `points` 計分欄位
+        const MOCK_STUDENTS = STUDENT_DATA.map((s, index) => ({
+            id: s.id, name: s.name, order: index,
+            checks: { eyes: false, hand: false, mouth: false },
+            submitted: false, completed: false,
+            points: 0 
+        }));
+
+        const getStudentGoals = (name) => {
+            const encouraged = [
+                { key: 'eyes', icon: '🎯', text: '上課專注聽講' },
+                { key: 'hand', icon: '🗣️', text: '發言超過兩次' },
+                { key: 'mouth', icon: '💯', text: '正確回答問題' }
+            ];
+            const defaultG = [
+                { key: 'eyes', icon: '👀', text: '我有看紅綠燈' },
+                { key: 'hand', icon: '✋', text: '我想說話有舉手' },
+                { key: 'mouth', icon: '🤐', text: '別人說話我安靜' }
+            ];
+
+            if (["守恩", "瑀安", "岷翰"].includes(name)) return encouraged;
+            if (name === "楷元") return [
+                { key: 'eyes', icon: '📝', text: '聯絡簿給老師簽名' },
+                { key: 'hand', icon: '✋', text: '我想說話有舉手' },
+                { key: 'mouth', icon: '🤐', text: '別人說話我安靜' }
+            ];
+            if (name === "宇軒") return [
+                { key: 'eyes', icon: '👂', text: '聽老師的話' },
+                { key: 'hand', icon: '🗣️', text: '發言超過兩次' },
+                { key: 'mouth', icon: '💯', text: '正確回答問題' }
+            ];
+            if (name === "書愷") return [
+                { key: 'eyes', icon: '📚', text: '上課拿出課本' },
+                { key: 'hand', icon: '✋', text: '我想說話有舉手' },
+                { key: 'mouth', icon: '🤐', text: '別人說話我安靜' }
+            ];
+            if (name === "睿穎") return [
+                { key: 'eyes', icon: '👀', text: '我有看紅綠燈' },
+                { key: 'hand', icon: '🙅‍♂️', text: '不可以摸同學' },
+                { key: 'mouth', icon: '🤐', text: '別人說話我安靜' }
+            ];
+
+            return defaultG;
+        };
+
+        const boardCells = [
+            { id: 0, text: '起點', icon: '🏁', type: 'start' },
+            { id: 1, text: '機會', icon: '❓', type: 'chance' },
+            { id: 2, text: '指定一人加2分', icon: '🤝', type: 'reward' },
+            { id: 3, text: '命運', icon: '⚡', type: 'destiny' },
+            { id: 4, text: '全班一起加2分', icon: '🎉', type: 'reward' },
+            { id: 5, text: '機會', icon: '❓', type: 'chance' },
+            { id: 6, text: '自己加2分', icon: '👑', type: 'reward' },
+            { id: 7, text: '命運', icon: '⚡', type: 'destiny' },
+            { id: 8, text: '指定兩人加1分', icon: '🎁', type: 'reward' },
+            { id: 9, text: '機會', icon: '❓', type: 'chance' },
+            { id: 10, text: '全班一起加1分', icon: '🌟', type: 'reward' },
+            { id: 11, text: '命運', icon: '⚡', type: 'destiny' },
+        ];
+
+        const chanceCards = [
+            "好棒！全班獲得一次大聲歡呼的機會！🎉",
+            "太幸運了！往前走 2 格 🐾",
+            "表現優良！老師給全班一個大大的讚 👍",
+            "做出好選擇！大家一起給自己拍拍手 👏",
+            "運氣真好！大家可以站起來伸個懶腰 🤸"
+        ];
+
+        const destinyCards = [
+            "上課太吵囉！全班挑戰安靜 10 秒鐘 🤐",
+            "選擇錯誤！退後 1 格 🔙",
+            "遇到紅燈！遊戲暫停一次，深呼吸 🛑",
+            "大家一起練習做「停下來想一想」的動作！🤔",
+            "請「舉手」，堅持 5 秒鐘 ✋"
+        ];
+
+        const getGridArea = (id) => {
+            if (id === 0) return { gridColumn: 1, gridRow: 1 };
+            if (id === 1) return { gridColumn: 2, gridRow: 1 };
+            if (id === 2) return { gridColumn: 3, gridRow: 1 };
+            if (id === 3) return { gridColumn: 4, gridRow: 1 };
+            if (id === 4) return { gridColumn: 4, gridRow: 2 };
+            if (id === 5) return { gridColumn: 4, gridRow: 3 };
+            if (id === 6) return { gridColumn: 4, gridRow: 4 };
+            if (id === 7) return { gridColumn: 3, gridRow: 4 };
+            if (id === 8) return { gridColumn: 2, gridRow: 4 };
+            if (id === 9) return { gridColumn: 1, gridRow: 4 };
+            if (id === 10) return { gridColumn: 1, gridRow: 3 };
+            if (id === 11) return { gridColumn: 1, gridRow: 2 };
+        };
+
+        const SmartImage = ({ baseName, className, fallback, zoomable = false }) => {
+            const [extIndex, setExtIndex] = useState(0);
+            const [failed, setFailed] = useState(false);
+            const [isZoomed, setIsZoomed] = useState(false);
+            const [origin, setOrigin] = useState("50% 50%");
+            const exts = ['.jpg', '.JPG', '.png', '.PNG', '.jpeg', '.JPEG'];
+            
+            useEffect(() => {
+                setExtIndex(0);
+                setFailed(false);
+                setIsZoomed(false);
+                setOrigin("50% 50%");
+            }, [baseName]);
+
+            const handleMouseMove = (e) => {
+                if (!zoomable) return;
+                const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+                const x = ((e.clientX - left) / width) * 100;
+                const y = ((e.clientY - top) / height) * 100;
+                setOrigin(`${x}% ${y}%`);
+            };
+
+            if (failed) return fallback;
+
+            const imgElement = (
+                <img 
+                    src={`images/${baseName}${exts[extIndex]}`}
+                    className={className}
+                    alt={baseName}
+                    style={zoomable ? {
+                        transform: isZoomed ? 'scale(2.5)' : 'scale(1)',
+                        transformOrigin: origin,
+                        transition: 'transform 0.2s ease-out',
+                        willChange: 'transform',
+                        pointerEvents: 'none'
+                    } : {}}
+                    onError={() => {
+                        if (extIndex < exts.length - 1) setExtIndex(prev => prev + 1);
+                        else setFailed(true);
+                    }}
+                />
+            );
+
+            if (!zoomable) return imgElement;
+
+            return (
+                <div 
+                    className="book-image-wrapper"
+                    onMouseEnter={() => setIsZoomed(true)}
+                    onMouseLeave={() => { setIsZoomed(false); setOrigin("50% 50%"); }}
+                    onMouseMove={handleMouseMove}
+                    onClick={() => setIsZoomed(!isZoomed)}
+                    style={{ cursor: isZoomed ? 'zoom-out' : 'zoom-in' }}
+                >
+                    {imgElement}
+                </div>
+            );
+        };
+
+        const Clock = () => {
+            const [time, setTime] = useState(new Date());
+
+            useEffect(() => {
+                const timer = setInterval(() => setTime(new Date()), 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            return (
+                <div className="bg-white/90 px-4 py-2 rounded-xl text-3xl font-mono text-gray-700 font-bold border-2 border-gray-300 shadow-md">
+                    {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+            );
+        };
+
+        const ConnectionStatus = ({ customClass }) => {
+            let color = "bg-gray-400";
+            let text = "連線中...";
+            if (window.connectionStatus === "connected") { color = "bg-green-500"; text = "● 雲端連線中"; }
+            else if (window.connectionStatus === "disconnected") { color = "bg-red-500"; text = "● 斷線"; }
+            else if (window.connectionStatus === "connecting") { color = "bg-yellow-500"; text = "● 連線中..."; }
+
+            const baseClasses = customClass || "absolute top-4 right-4 z-50";
+
+            return (
+                <div className={`${baseClasses} flex items-center gap-2 bg-white/90 px-3 py-1 rounded-full shadow-md border-2 border-gray-100`}>
+                    <span className={`text-base font-bold ${color === 'bg-green-500' ? 'text-green-600' : 'text-red-500'}`}>{text}</span>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [currentSlide, setCurrentSlide] = useState(0);
+            const [savedSlide, setSavedSlide] = useState(null);
+            
+            const [user, setUser] = useState(null);
+            const [students, setStudents] = useState(MOCK_STUDENTS);
+            
+            const [isTabletMode, setIsTabletMode] = useState(() => {
+                return window.location.href.includes('mode=student');
+            });
+
+            // 💡 新增：加分板側邊欄顯示狀態
+            const [showScorePanel, setShowScorePanel] = useState(false);
+
+            const [selectedStudentId, setSelectedStudentId] = useState(null);
+            const [isOfflineMode, setIsOfflineMode] = useState(!db); 
+            const [isLocalFile, setIsLocalFile] = useState(false);
+            const [loadingError, setLoadingError] = useState("");
+            const [connectionStatusState, setConnectionStatusState] = useState("connecting");
+            const [revealResults, setRevealResults] = useState(false);
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            
+            // 互動頁面的狀態
+            const [choice1, setChoice1] = useState(null);
+            const [choice2, setChoice2] = useState(null);
+
+            window.connectionStatus = connectionStatusState; 
+
+            const [showBook, setShowBook] = useState(false);
+            const [bookPage, setBookPage] = useState(1);
+            // 繪本 1-16 頁
+            const TOTAL_PAGES = 16; 
+
+            const [playerPosition, setPlayerPosition] = useState(0);
+            const [diceNumber, setDiceNumber] = useState(1);
+            const [isRolling, setIsRolling] = useState(false);
+            const [activeCard, setActiveCard] = useState(null);
+
+            // 總共 9 頁
+            const totalSlides = 9; 
+
+            useEffect(() => {
+                if (isTabletMode) {
+                    document.body.classList.add('student-mode-active');
+                } else {
+                    document.body.classList.remove('student-mode-active');
+                }
+            }, [isTabletMode]);
+
+            const nextSlide = () => { if (currentSlide < totalSlides - 1) setCurrentSlide(currentSlide + 1); };
+            const prevSlide = () => { if (currentSlide > 0) setCurrentSlide(currentSlide - 1); };
+
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (isTabletMode) return;
+                    if (showBook) {
+                         if (e.key === 'ArrowRight') setBookPage(p => Math.min(TOTAL_PAGES, p + 1));
+                         if (e.key === 'ArrowLeft') setBookPage(p => Math.max(1, p - 1));
+                         if (e.key === 'Escape') setShowBook(false);
+                         return;
+                    }
+                    if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+                    if (e.key === 'ArrowLeft') prevSlide();
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [currentSlide, isTabletMode, showBook, playerPosition, totalSlides]);
+
+            useEffect(() => {
+                if (window.location.protocol === 'file:') {
+                    setIsLocalFile(true);
+                    setIsOfflineMode(true);
+                    setConnectionStatusState("disconnected");
+                }
+            }, []);
+
+            // Auth Logic
+            useEffect(() => {
+                if (!db) {
+                    setConnectionStatusState("disconnected");
+                    const savedData = localStorage.getItem('local_students_data_v2');
+                    if (savedData) setStudents(JSON.parse(savedData));
+                    return;
+                }
+
+                const initAuth = async () => {
+                    try {
+                        setLoadingError("");
+                        setConnectionStatusState("connecting");
+                        if (TEACHER_FIREBASE_CONFIG) {
+                            await auth.signInAnonymously();
+                        } else {
+                            await auth.signInAnonymously();
+                        }
+                    } catch (e) {
+                        console.error("Auth error:", e);
+                        setConnectionStatusState("disconnected");
+                        setLoadingError(`連線失敗: ${e.code}`);
+                    }
+                };
+                initAuth();
+                const unsubscribe = auth.onAuthStateChanged((u) => {
+                    setUser(u);
+                    if (u) setConnectionStatusState("connected");
+                    else setConnectionStatusState("disconnected");
+                });
+                return () => unsubscribe();
+            }, []);
+
+            // Firestore Data Logic
+            useEffect(() => {
+                if (!user || !db) return;
+
+                const studentsRef = db.collection(COLLECTION_NAME).orderBy("order");
+                const unsubscribe = studentsRef.onSnapshot((snapshot) => {
+                    setConnectionStatusState("connected");
+                    const data = [];
+                    snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
+
+                    if (data.length === 0) initializeDatabase();
+                    else {
+                        setStudents(data);
+                        setLoadingError("");
+                    }
+                }, (error) => {
+                    console.error("Firestore Error:", error);
+                    setConnectionStatusState("disconnected");
+                    setLoadingError("資料庫斷線: " + error.message);
+                });
+
+                return () => unsubscribe();
+            }, [user]);
+
+            const initializeDatabase = async () => {
+                if (!db) return;
+                try {
+                    const batch = db.batch();
+                    STUDENT_DATA.forEach((s, index) => {
+                        const ref = db.collection(COLLECTION_NAME).doc(s.id);
+                        batch.set(ref, {
+                            name: s.name, order: index,
+                            checks: { eyes: false, hand: false, mouth: false },
+                            submitted: false,
+                            points: 0 // 💡 初始化分數欄位
+                        });
+                    });
+                    await batch.commit();
+                } catch (e) { console.error("Init failed", e); }
+            };
+
+            const resetAllStudents = async () => {
+                if (!db || !user) { alert("未連線，無法重置"); return; }
+                if (!confirm("確定要重置所有學生的狀態嗎？")) return;
+                
+                setRevealResults(false);
+                try {
+                    const batch = db.batch();
+                    students.forEach(student => {
+                        const docRef = db.collection(COLLECTION_NAME).doc(student.id);
+                        batch.update(docRef, { checks: { eyes: false, hand: false, mouth: false }, submitted: false });
+                    });
+                    await batch.commit();
+                } catch (e) { alert("重置失敗: " + e.message); }
+            };
+
+            const updateStudentCheck = async (studentId, checkItem, currentValue) => {
+                const nextValue = !currentValue;
+                setStudents(prev => prev.map(s => s.id === studentId ? { ...s, checks: { ...s.checks, [checkItem]: nextValue } } : s));
+
+                if (db && user) {
+                    try { await db.collection(COLLECTION_NAME).doc(studentId).update({ [`checks.${checkItem}`]: nextValue }); } 
+                    catch (e) { console.error("Sync failed", e); }
+                } else {
+                    saveToLocal();
+                }
+            };
+
+            const submitStudentData = async (studentId, status) => {
+                if (!db || !user || window.connectionStatus !== "connected") {
+                    alert("尚未連線到雲端，無法送出！請檢查網路或右上角狀態。");
+                    return;
+                }
+                setIsSubmitting(true);
+                try {
+                    await db.collection(COLLECTION_NAME).doc(studentId).update({
+                        submitted: status,
+                        lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    setStudents(prev => prev.map(s => s.id === studentId ? { ...s, submitted: status } : s));
+                } catch (e) { alert("送出失敗：" + e.message); } 
+                finally { setIsSubmitting(false); }
+            };
+
+            // 💡 新增：處理學生的加減分
+            const updatePoints = async (studentId, delta) => {
+                setStudents(prev => prev.map(s => {
+                    if (s.id === studentId) {
+                        return { ...s, points: Math.max(0, (s.points || 0) + delta) };
+                    }
+                    return s;
+                }));
+
+                if (db && user && window.connectionStatus === "connected") {
+                    try {
+                        const studentRef = db.collection(COLLECTION_NAME).doc(studentId);
+                        await studentRef.update({
+                            points: firebase.firestore.FieldValue.increment(delta)
+                        });
+                    } catch (e) { console.error("Score sync failed", e); }
+                } else {
+                    saveToLocal();
+                }
+            };
+
+            const saveToLocal = () => {
+                localStorage.setItem('local_students_data_v2', JSON.stringify(students));
+            };
+
+            const calculateScore = (checks) => Object.values(checks || {}).filter(Boolean).length;
+
+            const rollDice = () => {
+                if (isRolling) return;
+                setIsRolling(true);
+                setActiveCard(null);
+                
+                let rolls = 0;
+                const interval = setInterval(() => {
+                    setDiceNumber(Math.floor(Math.random() * 6) + 1);
+                    rolls++;
+                    if (rolls > 12) {
+                        clearInterval(interval);
+                        const finalDice = Math.floor(Math.random() * 6) + 1;
+                        setDiceNumber(finalDice);
+                        setIsRolling(false);
+                        
+                        const newPos = (playerPosition + finalDice) % 12;
+                        setPlayerPosition(newPos);
+                        
+                        setTimeout(() => {
+                            const cell = boardCells[newPos];
+                            if (cell.type === 'chance') {
+                                setActiveCard({ type: '機會', text: chanceCards[Math.floor(Math.random() * chanceCards.length)] });
+                            } else if (cell.type === 'destiny') {
+                                setActiveCard({ type: '命運', text: destinyCards[Math.floor(Math.random() * destinyCards.length)] });
+                            } else if (cell.type === 'reward') {
+                                setActiveCard({ type: '獎賞', text: `恭喜！獲得獎賞：「${cell.text}」！` });
+                            } else if (cell.type === 'start') {
+                                setActiveCard({ type: '起點', text: `回到起點，再接再厲！` });
+                            }
+                        }, 800);
+                    }
+                }, 80);
+            };
+
+            const BookReader = () => {
+                if (!showBook) return null;
+                // 讀取 images/1.jpg 到 images/16.jpg
+                const baseName = `${bookPage}`;
+
+                return (
+                    <div className="book-reader-overlay">
+                        <button onClick={() => setShowBook(false)} className="absolute top-4 right-6 text-white text-5xl font-bold bg-gray-800/60 rounded-full w-14 h-14 flex items-center justify-center hover:bg-red-600 transition-colors z-[10000]">×</button>
+                        <button onClick={(e) => { e.stopPropagation(); setBookPage(p => Math.max(1, p - 1)); }} disabled={bookPage === 1} className="absolute left-6 top-1/2 transform -translate-y-1/2 text-white text-6xl bg-gray-800/70 rounded-full w-20 h-20 flex items-center justify-center hover:bg-white/40 disabled:opacity-30 transition-all z-[10000]">‹</button>
+                        
+                        <div className="relative flex flex-col items-center justify-center w-full h-full p-2">
+                            <SmartImage 
+                                baseName={baseName}
+                                className="book-image rounded-xl"
+                                zoomable={true}
+                                fallback={
+                                    <div className="text-white text-2xl p-16 border-2 border-white text-center bg-black/60 rounded-xl">
+                                        圖片讀取失敗<br/>請確認檔案位置: images/{baseName}.jpg<br/>
+                                    </div>
+                                }
+                            />
+                            <div className="absolute bottom-6 text-white text-2xl font-bold bg-black/70 px-6 py-2 rounded-full pointer-events-none drop-shadow-md z-[10000]">{bookPage} / {TOTAL_PAGES}</div>
+                        </div>
+
+                        <button onClick={(e) => { e.stopPropagation(); setBookPage(p => Math.min(TOTAL_PAGES, p + 1)); }} disabled={bookPage === TOTAL_PAGES} className="absolute right-6 top-1/2 transform -translate-y-1/2 text-white text-6xl bg-gray-800/70 rounded-full w-20 h-20 flex items-center justify-center hover:bg-white/40 disabled:opacity-30 transition-all z-[10000]">›</button>
+                    </div>
+                );
+            };
+
+            // 學生平板介面
+            if (isTabletMode) {
+                if (selectedStudentId === null) {
+                    return (
+                        <div className="tablet-mode-container">
+                            <ConnectionStatus />
+                            {loadingError && <div className="mt-8 text-center bg-red-100 p-2 text-red-600 font-bold rounded-xl border-2 border-red-300 w-full max-w-4xl">{loadingError}</div>}
+                            <h1 className="text-5xl font-black text-pink-800 text-center mb-6 mt-4">我是誰？</h1>
+                            <div className="grid grid-cols-2 gap-4 w-full max-w-4xl mx-auto">
+                                {students.map(student => (
+                                    <button key={student.id} onClick={() => { if(window.connectionStatus !== 'connected') alert("請等待連線成功 (綠燈)..."); else setSelectedStudentId(student.id); }} className={`p-6 rounded-2xl shadow-md border-b-8 active:translate-y-1 active:border-b-0 transition-all w-full ${student.submitted ? 'bg-green-100 border-green-400' : 'bg-white border-pink-300'}`}>
+                                        <div className="text-4xl font-bold text-gray-800">{student.name}</div>
+                                        {student.submitted && <div className="mt-2 text-2xl font-bold text-green-700">已送出 ✅</div>}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                } else {
+                    const currentStudent = students.find(s => s.id === selectedStudentId);
+                    if (!currentStudent) return <div>載入中...</div>;
+                    const isSubmitted = currentStudent.submitted;
+
+                    const SECRET_MISSIONS = {
+                        '書愷': '上課拿出課本',
+                        '宇軒': '聽老師的話',
+                        '楷元': '聯絡簿給老師簽名',
+                        '睿穎': '不可以摸同學',
+                        '瑀安': '上課要專心',
+                        '岷翰': '遵守上課規則',
+                        '守恩': '遵守上課規則'
+                    };
+                    const secretTask = SECRET_MISSIONS[currentStudent.name];
+
+                    return (
+                        <div className="tablet-mode-container flex flex-col items-center justify-start w-full">
+                            <ConnectionStatus />
+                            <div className="w-full max-w-4xl flex justify-between items-center mb-4 mt-4 px-4">
+                                <h2 className="text-5xl font-black text-pink-800">{currentStudent.name}</h2>
+                                <button onClick={() => setSelectedStudentId(null)} className="bg-gray-200 text-gray-700 px-6 py-2 rounded-full font-bold text-2xl shadow-md">返回</button>
+                            </div>
+                            
+                            {secretTask && (
+                                <div className="w-full max-w-4xl px-4 mb-6">
+                                    <div className="bg-gradient-to-r from-purple-100 to-indigo-100 border-l-[12px] border-purple-500 p-6 rounded-3xl shadow-md flex items-center">
+                                        <span className="text-6xl mr-6">🕵️‍♂️</span>
+                                        <div>
+                                            <h3 className="text-2xl font-bold text-purple-800 mb-1">你的專屬隱藏任務</h3>
+                                            <p className="text-4xl font-black text-purple-900">{secretTask}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex-1 w-full max-w-4xl space-y-4 relative px-4">
+                                {isSubmitted && (
+                                    <div className="absolute inset-0 bg-white/95 z-10 rounded-3xl flex flex-col items-center justify-center backdrop-blur-sm border-4 border-green-200">
+                                        <div className="text-8xl mb-4">✅</div>
+                                        <div className="text-5xl font-bold text-green-700 mb-8">答案已送出！</div>
+                                        <button onClick={() => submitStudentData(currentStudent.id, false)} className="bg-gray-500 text-white px-8 py-4 rounded-full font-bold text-3xl shadow-lg hover:bg-gray-600" disabled={isSubmitting}>{isSubmitting ? '處理中...' : '修改答案'}</button>
+                                    </div>
+                                )}
+                                {(() => {
+                                    const evaluationItems = getStudentGoals(currentStudent.name);
+                                    
+                                    return evaluationItems.map(item => (
+                                        <div key={item.key} onClick={() => !isSubmitted && updateStudentCheck(currentStudent.id, item.key, currentStudent.checks[item.key])} className={`flex items-center p-6 bg-white rounded-2xl shadow-md cursor-pointer transition-all border-l-[16px] active:scale-95 ${currentStudent.checks[item.key] ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
+                                            <div className={`w-16 h-16 rounded-xl border-4 mr-6 flex items-center justify-center transition-colors flex-shrink-0 ${currentStudent.checks[item.key] ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>{currentStudent.checks[item.key] && <span className="text-4xl text-white font-bold">✓</span>}</div>
+                                            <span className="text-5xl mr-4">{item.icon}</span><span className="text-3xl font-bold text-gray-700">{item.text}</span>
+                                        </div>
+                                    ));
+                                })()}
+                            </div>
+                            {!isSubmitted && (
+                                <div className="mt-8 mb-8 w-full max-w-4xl px-4">
+                                    <button onClick={() => submitStudentData(currentStudent.id, true)} disabled={isSubmitting} className={`w-full text-white text-5xl font-black py-6 rounded-3xl shadow-xl border-b-[10px] active:translate-y-2 active:border-b-0 transition-all flex items-center justify-center gap-4 ${isSubmitting ? 'bg-gray-400 border-gray-600 cursor-wait' : 'bg-pink-500 hover:bg-pink-600 border-pink-700'}`}>{isSubmitting ? '傳送中...' : <span>🚀 確認送出</span>}</button>
+                                </div>
+                            )}
+                        </div>
+                    );
+                }
+            }
+
+            const SlideContent = () => {
+                switch(currentSlide) {
+                    case 0: return (
+                        <div className="content-area bg-blue-50 relative overflow-hidden">
+                            {/* 💡 載入您上傳的圖片並套用動畫效果 */}
+                            <img src="images/bird-run.png" alt="跑跑鳥" className="absolute bottom-12 left-12 w-48 object-contain animate-wobble opacity-90" />
+                            <img src="images/whale.png" alt="鯨魚" className="absolute top-12 right-12 w-64 object-contain animate-bounce-slow opacity-90" />
+                            
+                            <div className="text-[10rem] animate-bounce-slow mt-2 relative z-10">🤔</div>
+                            <h1 className="text-6xl font-black text-blue-800 tracking-wider mb-4 relative z-10">社會技巧課</h1>
+                            <div className="bg-white px-8 py-3 rounded-3xl border-[6px] border-blue-300 shadow-xl mb-4 relative z-10"><h2 className="text-4xl font-bold text-gray-700">遇到選擇時，你會怎麼做？</h2></div>
+                            <p className="text-2xl text-gray-500 font-bold relative z-10">準備好動動大腦了嗎？</p>
+                        </div>
+                    );
+                    case 1: return (
+                        <div className="content-area bg-yellow-50">
+                            <h2 className="text-5xl font-bold text-yellow-800 border-b-4 border-yellow-200 pb-2 mb-6">今天的任務</h2>
+                            <div className="flex-1 flex flex-col justify-center gap-6 w-full max-w-4xl">
+                                <div className="flex items-center p-6 bg-white rounded-2xl shadow-lg border-l-[12px] border-blue-500 hover:scale-105 transition-transform">
+                                    <span className="text-6xl mr-8">📖</span><span className="text-4xl font-bold text-gray-700">1. 聽繪本故事</span>
+                                </div>
+                                <div className="flex items-center p-6 bg-white rounded-2xl shadow-lg border-l-[12px] border-orange-500 hover:scale-105 transition-transform">
+                                    <span className="text-6xl mr-8">⚖️</span><span className="text-4xl font-bold text-gray-700">2. 選擇大挑戰</span>
+                                </div>
+                                <div onClick={() => setCurrentSlide(8)} className="flex items-center p-6 bg-white rounded-2xl shadow-lg border-l-[12px] border-green-500 hover:scale-105 transition-transform cursor-pointer relative overflow-hidden group">
+                                    <div className="absolute inset-0 bg-green-100 opacity-0 group-hover:opacity-30 transition-opacity"></div>
+                                    <span className="text-6xl mr-8">🕵️‍♂️</span>
+                                    <span className="text-4xl font-bold text-gray-700 relative z-10 flex-1">3. 祕密的隱藏任務</span>
+                                    <span className="text-2xl animate-pulse text-green-600 font-bold relative z-10 hidden group-hover:block">點我看任務 👆</span>
+                                </div>
+                                <div className="flex items-center p-6 bg-white rounded-2xl shadow-lg border-l-[12px] border-red-500 hover:scale-105 transition-transform">
+                                    <span className="text-6xl mr-8">⭐</span><span className="text-4xl font-bold text-gray-700">4. 蓋印章</span>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                    case 2: return ( 
+                        <div className="content-area bg-indigo-50">
+                            <h2 className="text-5xl font-bold text-indigo-900 mb-4">故事時間</h2>
+                            <div className="flex items-center justify-center gap-8 w-full flex-1">
+                                <div 
+                                    className="bg-white p-6 rounded-3xl shadow-2xl border-8 border-indigo-200 transform cursor-pointer hover:scale-105 transition-transform"
+                                    onClick={() => { setBookPage(1); setShowBook(true); }}
+                                >
+                                    <div className="relative">
+                                        <div className="w-[20rem] h-[28rem] bg-indigo-100 flex flex-col items-center justify-center rounded-2xl mb-4 border-4 border-indigo-300">
+                                            <span className="text-[8rem] mb-4">📖</span>
+                                            <span className="text-2xl font-bold text-indigo-800">點擊打開繪本</span>
+                                        </div>
+                                        <div className="absolute -bottom-4 -right-4 bg-yellow-400 text-white rounded-full p-4 shadow-lg animate-bounce">
+                                            <span className="text-4xl">👆</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                    case 3: return ( 
+                        <div className="content-area bg-orange-50">
+                            <h2 className="text-5xl font-black text-orange-800 mb-8 text-center drop-shadow-sm">情境一：想玩的玩具被拿走</h2>
+                            <p className="text-3xl font-bold text-gray-700 mb-10 bg-white px-8 py-3 rounded-full shadow-sm border-2 border-orange-200">你會怎麼做呢？點擊看看結果！</p>
+                            
+                            <div className="flex gap-8 w-full max-w-5xl">
+                                <div 
+                                    onClick={() => setChoice1('A')}
+                                    className={`flex-1 p-8 rounded-3xl shadow-xl cursor-pointer transition-all duration-300 ${choice1 === 'A' ? 'bg-red-100 border-8 border-red-400 scale-105' : 'bg-white border-8 border-gray-200 hover:scale-105'}`}
+                                >
+                                    <div className="text-6xl mb-4">😡</div>
+                                    <h3 className="text-3xl font-bold text-gray-800 mb-4">選擇 A</h3>
+                                    <p className="text-2xl text-gray-600 font-bold mb-6">大聲生氣說「還給我！」並用力搶回來。</p>
+                                    
+                                    {choice1 === 'A' && (
+                                        <div className="bg-red-500 text-white p-4 rounded-2xl animate-wobble">
+                                            <p className="text-2xl font-black">💥 糟糕！</p>
+                                            <p className="text-lg font-bold mt-2">大家都不開心，可能會被老師處罰。</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div 
+                                    onClick={() => setChoice1('B')}
+                                    className={`flex-1 p-8 rounded-3xl shadow-xl cursor-pointer transition-all duration-300 ${choice1 === 'B' ? 'bg-green-100 border-8 border-green-400 scale-105' : 'bg-white border-8 border-gray-200 hover:scale-105'}`}
+                                >
+                                    <div className="text-6xl mb-4">🤝</div>
+                                    <h3 className="text-3xl font-bold text-gray-800 mb-4">選擇 B</h3>
+                                    <p className="text-2xl text-gray-600 font-bold mb-6">停下來想一想，問：「我可以跟你一起玩嗎？」</p>
+                                    
+                                    {choice1 === 'B' && (
+                                        <div className="bg-green-500 text-white p-4 rounded-2xl popup-card-animation">
+                                            <p className="text-2xl font-black">🌟 太棒了！</p>
+                                            <p className="text-lg font-bold mt-2">你們可以一起玩，交到好朋友！</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                    case 4: return ( 
+                        <div className="content-area bg-blue-50">
+                            <h2 className="text-5xl font-black text-blue-800 mb-8 text-center drop-shadow-sm">情境二：不小心把水打翻了</h2>
+                            <p className="text-3xl font-bold text-gray-700 mb-10 bg-white px-8 py-3 rounded-full shadow-sm border-2 border-blue-200">你會怎麼做呢？點擊看看結果！</p>
+                            
+                            <div className="flex gap-8 w-full max-w-5xl">
+                                <div 
+                                    onClick={() => setChoice2('A')}
+                                    className={`flex-1 p-8 rounded-3xl shadow-xl cursor-pointer transition-all duration-300 ${choice2 === 'A' ? 'bg-red-100 border-8 border-red-400 scale-105' : 'bg-white border-8 border-gray-200 hover:scale-105'}`}
+                                >
+                                    <div className="text-6xl mb-4">🏃‍♂️💨</div>
+                                    <h3 className="text-3xl font-bold text-gray-800 mb-4">選擇 A</h3>
+                                    <p className="text-2xl text-gray-600 font-bold mb-6">假裝沒看到，趕快跑走當作沒這回事。</p>
+                                    
+                                    {choice2 === 'A' && (
+                                        <div className="bg-red-500 text-white p-4 rounded-2xl animate-wobble">
+                                            <p className="text-2xl font-black">💥 糟糕！</p>
+                                            <p className="text-lg font-bold mt-2">別人可能會滑倒受傷，問題沒有解決！</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div 
+                                    onClick={() => setChoice2('B')}
+                                    className={`flex-1 p-8 rounded-3xl shadow-xl cursor-pointer transition-all duration-300 ${choice2 === 'B' ? 'bg-green-100 border-8 border-green-400 scale-105' : 'bg-white border-8 border-gray-200 hover:scale-105'}`}
+                                >
+                                    <div className="text-6xl mb-4">🧽✨</div>
+                                    <h3 className="text-3xl font-bold text-gray-800 mb-4">選擇 B</h3>
+                                    <p className="text-2xl text-gray-600 font-bold mb-6">誠實跟老師說對不起，並拿抹布幫忙擦乾淨。</p>
+                                    
+                                    {choice2 === 'B' && (
+                                        <div className="bg-green-500 text-white p-4 rounded-2xl popup-card-animation">
+                                            <p className="text-2xl font-black">🌟 太棒了！</p>
+                                            <p className="text-lg font-bold mt-2">你是個負責任的小孩，大家都會原諒你！</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                    case 5: return ( 
+                        <div className="content-area bg-green-50">
+                            <h2 className="text-5xl font-bold text-green-800 mb-6">說話遊戲大富翁</h2>
+                            
+                            <div className="w-full max-w-[1200px] h-[650px] grid gap-4 p-6 bg-green-100 rounded-[2rem] border-[10px] border-green-300 shadow-2xl relative"
+                                 style={{ gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(4, 1fr)' }}>
+                                
+                                {boardCells.map(cell => {
+                                    const area = getGridArea(cell.id);
+                                    const isPlayerHere = playerPosition === cell.id;
+                                    let cellColor = 'bg-white border-gray-300';
+                                    if(cell.type==='chance') cellColor = 'bg-orange-50 border-orange-300';
+                                    if(cell.type==='destiny') cellColor = 'bg-purple-50 border-purple-300';
+                                    if(cell.type==='start') cellColor = 'bg-blue-100 border-blue-400';
+                                    if(cell.type==='reward') cellColor = 'bg-pink-50 border-pink-300'; 
+
+                                    return (
+                                        <div key={cell.id} style={{...area}} className={`border-4 rounded-2xl flex flex-col items-center justify-center p-2 relative shadow-sm transition-all duration-300 ${cellColor} ${isPlayerHere ? 'ring-4 ring-pink-400 scale-105 z-10' : ''}`}>
+                                            <span className="text-5xl">{cell.icon}</span>
+                                            <span className="text-xl font-bold text-gray-700 mt-2 text-center leading-tight">{cell.text}</span>
+                                            {isPlayerHere && <div className="absolute -top-8 -right-8 text-[4.5rem] animate-bounce drop-shadow-lg z-20">🦝</div>}
+                                        </div>
+                                    )
+                                })}
+
+                                <div className="flex flex-col items-center justify-center bg-white/90 rounded-2xl shadow-inner border-4 border-dashed border-green-300 relative overflow-hidden" style={{ gridColumn: '2 / 4', gridRow: '2 / 4' }}>
+                                    
+                                    {activeCard ? (
+                                        <div className="absolute inset-0 bg-white flex flex-col items-center justify-center p-6 text-center popup-card-animation z-30">
+                                            <h3 className={`text-5xl font-black mb-4 ${activeCard.type === '機會' ? 'text-orange-500' : activeCard.type === '命運' ? 'text-purple-600' : activeCard.type === '獎賞' ? 'text-pink-600' : 'text-blue-600'}`}>{activeCard.type}卡</h3>
+                                            <p className="text-3xl font-bold text-gray-700 leading-snug px-4">{activeCard.text}</p>
+                                            <button onClick={() => setActiveCard(null)} className="mt-8 bg-gray-200 hover:bg-gray-300 text-gray-800 px-8 py-3 rounded-2xl text-2xl font-bold shadow transition-colors">確認</button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center">
+                                            <div className={`text-[8rem] mb-4 font-black text-blue-600 drop-shadow-md transition-transform ${isRolling ? 'animate-spin' : ''}`}>
+                                                {isRolling ? "🎲" : diceNumber}
+                                            </div>
+                                            <button onClick={rollDice} disabled={isRolling} className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-full font-black text-3xl shadow-lg active:scale-95 transition-transform disabled:opacity-50 flex items-center gap-2">
+                                                <span>🎲</span> {isRolling ? '擲骰子中...' : '擲骰子'}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                </div>
+                            </div>
+                        </div>
+                    );
+                    case 6: 
+                        const cleanBaseUrl = window.location.origin + window.location.pathname;
+                        const studentUrl = cleanBaseUrl + '?mode=student';
+                        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(studentUrl)}`;
+                        
+                        const eyesCount = students.filter(s => s.checks.eyes).length;
+                        const handCount = students.filter(s => s.checks.hand).length;
+                        const mouthCount = students.filter(s => s.checks.mouth).length;
+
+                        return (
+                            <div className="content-area bg-pink-50 relative px-4 py-2">
+                                <div className="absolute top-4 left-4 flex items-center gap-4 z-50">
+                                    <ConnectionStatus customClass="relative" />
+                                    <button onClick={() => window.location.reload()} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl shadow-lg font-bold text-lg flex items-center gap-2">
+                                        <span>🔄</span> 重整
+                                    </button>
+                                </div>
+                                
+                                <div className="flex flex-col justify-center items-center mb-4 relative w-full mt-4">
+                                    <div className="flex justify-center items-center w-full relative">
+                                        <h2 className="text-5xl font-bold text-pink-800 text-center">全班挑戰賽</h2>
+                                        <div className="absolute right-0 top-0 flex gap-4">
+                                            <button onClick={() => setRevealResults(!revealResults)} className={`px-6 py-3 rounded-xl text-2xl font-bold shadow-lg transition-all transform hover:scale-105 border-4 ${revealResults ? 'bg-gray-500 border-gray-600 text-white' : 'bg-yellow-400 border-yellow-200 text-yellow-900 animate-pulse'}`}>
+                                                {revealResults ? '🙈 隱藏' : '👀 揭曉'}
+                                            </button>
+                                            <button onClick={resetAllStudents} className="bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-500 px-6 py-3 rounded-xl text-2xl font-bold shadow-md">重置</button>
+                                        </div>
+                                    </div>
+                                    {revealResults && (
+                                        <div className="flex gap-8 bg-white px-8 py-2 mt-4 rounded-full shadow-sm border-2 border-pink-200 transition-all duration-500">
+                                            <div className="text-2xl font-bold text-gray-700 flex items-center gap-2">⭐ 任務一: <span className="text-green-600 text-3xl">{eyesCount}</span> 人</div>
+                                            <div className="text-2xl font-bold text-gray-700 flex items-center gap-2">⭐ 任務二: <span className="text-green-600 text-3xl">{handCount}</span> 人</div>
+                                            <div className="text-2xl font-bold text-gray-700 flex items-center gap-2">⭐ 任務三: <span className="text-green-600 text-3xl">{mouthCount}</span> 人</div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {isOfflineMode && <div className="absolute top-4 left-4 text-red-500 text-xl font-bold bg-white p-3 rounded-xl shadow-lg border-2 border-red-200 z-50">⚠️ 未設定 Firebase</div>}
+                                {loadingError && <div className="absolute top-20 left-6 flex gap-2 z-50"><div className="text-red-600 font-bold bg-white p-3 rounded-xl border-2 border-red-300 shadow-xl text-lg whitespace-pre-wrap max-w-md">{loadingError}</div></div>}
+                                {students.length === 0 && !loadingError && (
+                                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                                        <p className="text-gray-500 text-2xl font-bold mb-6">資料庫目前是空的</p>
+                                        <button onClick={() => initializeStudents()} className="bg-pink-500 text-white px-8 py-4 rounded-full shadow-xl font-bold text-2xl hover:bg-pink-600 transition-colors">點我初始化學生名單</button>
+                                    </div>
+                                )}
+
+                                <div className="flex-1 w-full grid grid-cols-4 gap-4 align-content-start overflow-y-auto pb-20 px-2 mt-4">
+                                    {students.map(student => {
+                                        const score = calculateScore(student.checks);
+                                        const isDone = score === 3;
+                                        
+                                        const evalItems = getStudentGoals(student.name);
+                                        const icon1 = evalItems[0].icon;
+                                        const icon2 = evalItems[1].icon;
+                                        const icon3 = evalItems[2].icon;
+                                        
+                                        return (
+                                            <div key={student.id} className="flip-card h-48 relative">
+                                                <div className={`flip-card-inner ${revealResults && student.submitted ? 'flipped' : ''}`}>
+                                                    <div className={`flip-card-front p-4 shadow-lg border-b-8 ${student.submitted ? 'bg-green-100 border-green-400' : 'bg-white border-pink-200'}`}>
+                                                        {!student.submitted ? (
+                                                            <>
+                                                                <div className="text-5xl mb-2 animate-pulse grayscale opacity-50">🤔</div>
+                                                                <h3 className="text-3xl font-bold text-gray-500 mb-1">{student.name}</h3>
+                                                                <div className="text-xl font-bold text-gray-400">作答中...</div>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <div className="text-6xl mb-2 text-green-500">✅</div>
+                                                                <h3 className="text-3xl font-bold text-gray-800 mb-1">{student.name}</h3>
+                                                                <div className="text-xl font-bold text-green-700">已完成！</div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    <div className={`flip-card-back p-4 shadow-lg border-b-8 ${isDone ? 'bg-yellow-100 border-yellow-400' : 'bg-white border-pink-200'}`}>
+                                                        <div className="flex justify-between items-center w-full px-2 mb-1">
+                                                            <h3 className="text-2xl font-bold text-gray-800">{student.name}</h3>
+                                                            <div className={`text-3xl font-black ${isDone ? 'text-yellow-600' : 'text-pink-600'}`}>{score}/3</div>
+                                                        </div>
+                                                        <div className="flex gap-3 mb-2 w-full justify-center">
+                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-sm ${student.checks.eyes ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>{icon1}</div>
+                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-sm ${student.checks.hand ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>{icon2}</div>
+                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl border-4 shadow-sm ${student.checks.mouth ? 'bg-green-500 border-green-600 text-white' : 'bg-gray-200 border-gray-300 text-gray-400 grayscale'}`}>{icon3}</div>
+                                                        </div>
+                                                        <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-200 px-0.5">
+                                                            <div className={`h-3 rounded-full transition-all duration-500 ${isDone ? 'bg-yellow-500' : 'bg-pink-500'}`} style={{width: `${(score/3)*100}%`}}></div>
+                                                        </div>
+                                                        {isDone && <div className="text-red-500 font-bold text-lg mt-1">太棒了!</div>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {isLocalFile ? (
+                                    <div className="absolute bottom-4 right-4 bg-white p-4 rounded-xl shadow-lg border-4 border-red-200 flex flex-col items-center max-w-sm">
+                                        <p className="font-bold text-red-600 text-lg mb-1">⚠️ 無法掃描</p>
+                                        <p className="text-base text-gray-600 text-center">本機檔案 (file://) 無法連線</p>
+                                    </div>
+                                ) : (
+                                    <div className="absolute bottom-4 right-4 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-4 border-4 border-pink-200">
+                                        <img src={qrCodeUrl} alt="Scan" className="w-20 h-20" />
+                                        <div className="text-left"><p className="font-bold text-gray-700 text-xl">掃描加入</p><p className="text-base text-gray-500">平板模式</p></div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    case 7: return ( 
+                        <div className="content-area bg-yellow-100">
+                            <div className="text-[10rem] animate-pulse drop-shadow-2xl">🌟</div>
+                            <h2 className="text-7xl font-black text-yellow-600 tracking-wider mb-8">任務成功！</h2>
+                            <p className="text-4xl font-bold text-gray-700 bg-white/60 px-12 py-4 rounded-full mb-8">你可以去蓋印章了！</p>
+                            <div className="flex gap-8 mt-4">
+                                <span className="text-8xl animate-bounce" style={{animationDelay: '0s'}}>🦝</span>
+                                <span className="text-8xl animate-bounce" style={{animationDelay: '0.2s'}}>🐰</span>
+                                <span className="text-8xl animate-bounce" style={{animationDelay: '0.4s'}}>🦊</span>
+                            </div>
+                        </div>
+                    );
+                    case 8: return ( 
+                        <div className="content-area bg-purple-50 relative">
+                            <div className="absolute top-8 left-8">
+                                <button onClick={() => setCurrentSlide(1)} className="bg-gray-400 hover:bg-gray-500 text-white px-6 py-3 rounded-2xl shadow-md font-bold text-2xl flex items-center gap-2 transition-transform active:scale-95">
+                                    🔙 返回
+                                </button>
+                            </div>
+                            <h2 className="text-6xl font-black text-purple-800 mb-10 text-center drop-shadow-sm mt-4">🕵️‍♂️ 每個人的隱藏任務</h2>
+                            <div className="grid grid-cols-2 gap-6 w-full max-w-5xl">
+                                {[
+                                    { name: '書愷', task: '上課拿出課本', icon: '📚', color: 'border-blue-400 text-blue-600' },
+                                    { name: '宇軒', task: '聽老師的話', icon: '👂', color: 'border-green-400 text-green-600' },
+                                    { name: '楷元', task: '聯絡簿給老師簽名', icon: '📝', color: 'border-yellow-400 text-yellow-600' },
+                                    { name: '睿穎', task: '不可以摸同學', icon: '🙅‍♂️', color: 'border-red-400 text-red-600' },
+                                    { name: '瑀安', task: '上課要專心', icon: '🎯', color: 'border-pink-400 text-pink-600' },
+                                    { name: '岷翰', task: '遵守上課規則', icon: '✅', color: 'border-teal-400 text-teal-600' },
+                                    { name: '守恩', task: '遵守上課規則', icon: '✅', color: 'border-indigo-400 text-indigo-600' },
+                                ].map((item, idx) => (
+                                    <div key={idx} className={`bg-white p-6 rounded-3xl shadow-lg border-l-[12px] ${item.color.split(' ')[0]} flex items-center transform hover:scale-105 transition-transform`}>
+                                        <span className="text-6xl mr-6">{item.icon}</span>
+                                        <div>
+                                            <span className={`text-2xl font-black ${item.color.split(' ')[1]} block mb-1`}>{item.name}</span>
+                                            <span className="text-3xl font-bold text-gray-700">{item.task}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                    default: return <div>Slide Error</div>;
+                }
+            };
+
+            return (
+                <div className="slide-wrapper">
+                    <div className="slide-container">
+                        <BookReader />
+                        <SlideContent />
+                        
+                        {/* 💡 全域加分板按鈕 - 獨立在背景上方，隨時可點擊 */}
+                        {!isTabletMode && (
+                            <button
+                                onClick={() => setShowScorePanel(true)}
+                                className="fixed top-6 left-6 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 px-6 py-3 rounded-full shadow-2xl font-black text-2xl flex items-center gap-2 border-4 border-yellow-200 z-[10001] transition-transform hover:scale-105 active:scale-95"
+                                style={{ display: showScorePanel ? 'none' : 'flex' }}
+                            >
+                                ⭐ 加分板
+                            </button>
+                        )}
+
+                        {/* 💡 加分板側邊欄 - 從左側滑出 */}
+                        {!isTabletMode && showScorePanel && (
+                            <div className="fixed top-0 left-0 h-full w-[24rem] bg-white shadow-[10px_0_40px_rgba(0,0,0,0.3)] z-[10002] flex flex-col border-r-8 border-yellow-400 animate-slide-in-left">
+                                <div className="bg-yellow-400 p-5 flex justify-between items-center shadow-md">
+                                    <span className="text-3xl font-black text-yellow-900">⭐ 班級加分板</span>
+                                    <button onClick={() => setShowScorePanel(false)} className="text-yellow-900 hover:bg-yellow-500 rounded-full w-12 h-12 flex items-center justify-center text-4xl font-bold transition-colors">×</button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-yellow-50">
+                                    {students.map(student => (
+                                        <div key={student.id} className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border-2 border-yellow-200">
+                                            <span className="text-2xl font-bold text-gray-800">{student.name}</span>
+                                            <div className="flex items-center gap-4">
+                                                <button onClick={() => updatePoints(student.id, -1)} className="w-12 h-12 bg-red-100 text-red-600 rounded-full font-black text-3xl hover:bg-red-200 active:scale-90 transition-transform shadow-sm flex items-center justify-center pb-1">-</button>
+                                                <span className="text-3xl font-black text-gray-700 w-12 text-center">{student.points || 0}</span>
+                                                <button onClick={() => updatePoints(student.id, 1)} className="w-12 h-12 bg-green-100 text-green-600 rounded-full font-black text-3xl hover:bg-green-200 active:scale-90 transition-transform shadow-sm flex items-center justify-center pb-1">+</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {!isTabletMode && (
+                            <>
+                                <div className="absolute bottom-4 left-4 flex items-center gap-4 z-[10000]">
+                                    <Clock />
+                                    {currentSlide !== 5 ? (
+                                        <button 
+                                            onClick={() => { setSavedSlide(currentSlide); setCurrentSlide(5); }} 
+                                            className="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 px-5 py-2 rounded-xl shadow-md font-black text-2xl flex items-center gap-2 transition-transform active:scale-95 border-2 border-yellow-500"
+                                        >
+                                            🎲 獎勵：大富翁
+                                        </button>
+                                    ) : (
+                                        savedSlide !== null && (
+                                            <button 
+                                                onClick={() => { setCurrentSlide(savedSlide); setSavedSlide(null); }} 
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-5 py-2 rounded-xl shadow-md font-black text-2xl flex items-center gap-2 transition-transform active:scale-95 border-2 border-gray-500"
+                                            >
+                                                🔙 返回故事
+                                            </button>
+                                        )
+                                    )}
+                                </div>
+                                
+                                <button onClick={prevSlide} disabled={currentSlide === 0} className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/50 hover:bg-white text-gray-800 p-4 rounded-full shadow-lg disabled:opacity-0 transition-all backdrop-blur-sm z-10"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg></button>
+                                <button onClick={nextSlide} disabled={currentSlide === totalSlides - 1} className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/50 hover:bg-white text-gray-800 p-4 rounded-full shadow-lg disabled:opacity-0 transition-all backdrop-blur-sm z-10"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg></button>
+                                
+                                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/10 px-4 py-1 rounded-full text-gray-600 font-bold text-xl backdrop-blur-sm z-[10000]">{currentSlide + 1} / {totalSlides}</div>
+                            </>
+                        )}
+                        {!isTabletMode && currentSlide === 6 && isLocalFile && (
+                            <button onClick={() => {
+                                const studentUrl = window.location.origin + window.location.pathname + '?mode=student';
+                                window.open(studentUrl, '_blank');
+                            }} className="absolute bottom-4 left-4 bg-pink-600 text-white font-bold p-2 rounded-lg shadow-lg hover:bg-pink-700 z-50 text-sm">開啟學生平板視窗 (測試用)</button>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
