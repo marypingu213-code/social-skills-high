@@ -90,6 +90,18 @@
             animation: wobble 0.8s ease-in-out infinite;
         }
 
+        /* 💡 新增：鯨魚專屬的游泳動畫 */
+        @keyframes swim {
+            0% { transform: translate(0px, 0px) rotate(0deg); }
+            25% { transform: translate(-15px, -15px) rotate(-3deg); }
+            50% { transform: translate(-30px, 0px) rotate(0deg); }
+            75% { transform: translate(-15px, 15px) rotate(3deg); }
+            100% { transform: translate(0px, 0px) rotate(0deg); }
+        }
+        .animate-swim {
+            animation: swim 6s ease-in-out infinite;
+        }
+
         /* 💡 新增：加分板滑入動畫 */
         @keyframes slideInLeft {
             from { transform: translateX(-100%); }
@@ -746,7 +758,8 @@
                         <div className="content-area bg-blue-50 relative overflow-hidden">
                             {/* 💡 載入您上傳的圖片並套用動畫效果 */}
                             <img src="images/bird-run.png" alt="跑跑鳥" className="absolute bottom-12 left-12 w-48 object-contain animate-wobble opacity-90" />
-                            <img src="images/whale.png" alt="鯨魚" className="absolute top-12 right-12 w-64 object-contain animate-bounce-slow opacity-90" />
+                            {/* 💡 替換：將 whale 的動畫改為 animate-swim */}
+                            <img src="images/whale.png" alt="鯨魚" className="absolute top-12 right-12 w-64 object-contain animate-swim opacity-90" />
                             
                             <div className="text-[10rem] animate-bounce-slow mt-2 relative z-10">🤔</div>
                             <h1 className="text-6xl font-black text-blue-800 tracking-wider mb-4 relative z-10">社會技巧課</h1>
