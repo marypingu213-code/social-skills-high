@@ -768,23 +768,30 @@
                         </div>
                     );
                     case 1: return (
+                        // 💡 修改：將「今天的任務」變更為分組規則，並加上待打勾的視覺設計
                         <div className="content-area bg-yellow-50">
-                            <h2 className="text-5xl font-bold text-yellow-800 border-b-4 border-yellow-200 pb-2 mb-6">今天的任務</h2>
-                            <div className="flex-1 flex flex-col justify-center gap-6 w-full max-w-4xl">
-                                <div className="flex items-center p-6 bg-white rounded-2xl shadow-lg border-l-[12px] border-blue-500 hover:scale-105 transition-transform">
-                                    <span className="text-6xl mr-8">📖</span><span className="text-4xl font-bold text-gray-700">1. 聽繪本故事</span>
+                            <h2 className="text-5xl font-bold text-yellow-800 border-b-4 border-yellow-200 pb-2 mb-8">📝 今天的任務與規則</h2>
+                            <div className="flex-1 flex flex-col justify-center gap-6 w-full max-w-5xl">
+                                <div className="flex items-center p-6 bg-white rounded-3xl shadow-xl border-l-[16px] border-pink-500 hover:scale-105 transition-transform">
+                                    <div className="w-16 h-16 border-[6px] border-gray-300 rounded-2xl mr-8 bg-gray-50 shadow-inner flex items-center justify-center"></div>
+                                    <div className="flex-1">
+                                        <h3 className="text-4xl font-black text-gray-800 mb-2">回答兩次問題 <span className="text-3xl ml-2">🙋‍♂️</span></h3>
+                                        <p className="text-2xl font-bold text-pink-600 tracking-wide">守恩、瑀安、宇軒、岷翰</p>
+                                    </div>
                                 </div>
-                                <div className="flex items-center p-6 bg-white rounded-2xl shadow-lg border-l-[12px] border-orange-500 hover:scale-105 transition-transform">
-                                    <span className="text-6xl mr-8">⚖️</span><span className="text-4xl font-bold text-gray-700">2. 選擇大挑戰</span>
+                                <div className="flex items-center p-6 bg-white rounded-3xl shadow-xl border-l-[16px] border-green-500 hover:scale-105 transition-transform">
+                                    <div className="w-16 h-16 border-[6px] border-gray-300 rounded-2xl mr-8 bg-gray-50 shadow-inner flex items-center justify-center"></div>
+                                    <div className="flex-1">
+                                        <h3 className="text-4xl font-black text-gray-800 mb-2">遵守紅綠燈規則 <span className="text-3xl ml-2">🚦</span></h3>
+                                        <p className="text-2xl font-bold text-green-600 tracking-wide">書愷、楷元、承熙</p>
+                                    </div>
                                 </div>
-                                <div onClick={() => setCurrentSlide(8)} className="flex items-center p-6 bg-white rounded-2xl shadow-lg border-l-[12px] border-green-500 hover:scale-105 transition-transform cursor-pointer relative overflow-hidden group">
-                                    <div className="absolute inset-0 bg-green-100 opacity-0 group-hover:opacity-30 transition-opacity"></div>
-                                    <span className="text-6xl mr-8">🕵️‍♂️</span>
-                                    <span className="text-4xl font-bold text-gray-700 relative z-10 flex-1">3. 祕密的隱藏任務</span>
-                                    <span className="text-2xl animate-pulse text-green-600 font-bold relative z-10 hidden group-hover:block">點我看任務 👆</span>
-                                </div>
-                                <div className="flex items-center p-6 bg-white rounded-2xl shadow-lg border-l-[12px] border-red-500 hover:scale-105 transition-transform">
-                                    <span className="text-6xl mr-8">⭐</span><span className="text-4xl font-bold text-gray-700">4. 蓋印章</span>
+                                <div className="flex items-center p-6 bg-white rounded-3xl shadow-xl border-l-[16px] border-blue-500 hover:scale-105 transition-transform">
+                                    <div className="w-16 h-16 border-[6px] border-gray-300 rounded-2xl mr-8 bg-gray-50 shadow-inner flex items-center justify-center"></div>
+                                    <div className="flex-1">
+                                        <h3 className="text-4xl font-black text-gray-800 mb-2">上課專心 <span className="text-3xl ml-2">🎯</span></h3>
+                                        <p className="text-2xl font-bold text-blue-600 tracking-wide">睿穎</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
